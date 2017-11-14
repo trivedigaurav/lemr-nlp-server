@@ -13,6 +13,14 @@ Install the Python modules required by this project. You may also do this within
 
 ### Running the server
   
-    gunicorn --reload server.app
+  You can run the above example using any WSGI server, such as uWSGI or Gunicorn. For example:
     
-`--reload` option restarts the server automatically if you make any changes.
+    pip install gunicorn
+    gunicorn --reload -b 127.0.0.1:10000 server.app
+
+On Windows where Gunicorn and uWSGI don’t work yet you can use Waitress server
+
+    pip install waitress
+    waitress-serve --port=10000 server.app
+
+
