@@ -1,7 +1,21 @@
 import falcon
+from falcon_cors import CORS
 from .test import Resource
+from .login import Login
+from .getreport import *
 
-api = application = falcon.API()
+# For developement only
+# disable Cross-Origin Resource Sharing (CORS) in prod
+cors = CORS(allow_origins_list=['http://localhost:8000'],
+            allow_all_headers=True,
+            allow_all_methods=True)
+api = application = falcon.API(middleware=[cors.middleware])
 
 test = Resource()
 api.add_route('/test', test)
+
+login = Login()
+api.add_route('/login', login)
+
+getReport = GetReportById()
+api.add_route('/getReport/{report_id}', getReport)
