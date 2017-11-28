@@ -3,6 +3,10 @@ from falcon_cors import CORS
 from .test import Resource
 from .login import Login
 from .getreport import *
+from .logger import *
+from .annotator import *
+
+from .database import *
 
 # For developement only
 # disable Cross-Origin Resource Sharing (CORS) in prod
@@ -19,3 +23,9 @@ api.add_route('/login', login)
 
 getReport = GetReportById()
 api.add_route('/getReport/{report_id}', getReport)
+
+putLogEvent = PutLogEvent()
+api.add_route('/logEvent/{event_name}', putLogEvent)
+
+annotator = Annotator(database)
+api.add_route('/annotator/{event}/{uid}', annotator)
