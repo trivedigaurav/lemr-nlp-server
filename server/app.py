@@ -5,6 +5,7 @@ from .login import Login
 from .getreport import *
 from .logger import *
 from .annotator import *
+from .getencounter import *
 
 from .database import *
 
@@ -29,3 +30,6 @@ api.add_route('/logEvent/{event_name}', putLogEvent)
 
 annotator = Annotator(database)
 api.add_route('/annotator/{event}/{uid}', annotator)
+
+getEncounter = GetReportsByEncounter()
+api.add_route('/getEncounter/{encounterid}', getEncounter)
