@@ -1,15 +1,18 @@
 import json
 import falcon
-import mysql.connector
+# import mysql.connector
 
 from .admitdate_map import *
 from .discharge_map import *
 from .incidental_map import *
 
-cnx = mysql.connector.connect(user='lemr', password='Lx16022!HKCQ', database='PSO')
-cursor = cnx.cursor()
+# cnx = mysql.connector.connect(user='lemr', password='Lx16022!HKCQ', database='PSO')
+# cursor = cnx.cursor()
 
 class GetReportsByEncounter(object):
+
+    def __init__(self, database):
+        self.collection = database.rads_incidentals
 
     def on_get(self, req, resp, encounterid):
         reports = []
@@ -32,28 +35,32 @@ class GetReportsByEncounter(object):
                 incidental = None
 
 
-            print "SELECT * FROM PSO.reports WHERE encounterid=" + encounterid + \
-                   " AND type='RAD' AND date>=" + str(admit) + \
-                   " AND date<=" + str(discharge) + \
-                   " ORDER BY date ASC"
+            # cursor.execute("SELECT * FROM PSO.reports WHERE encounterid=" + encounterid + 
+            #        " AND type='RAD' AND date>=" + str(admit) +
+            #        " AND date<=" + str(discharge) +
+            #        " ORDER BY date ASC")
 
-            cursor.execute("SELECT * FROM PSO.reports WHERE encounterid=" + encounterid + 
-                   " AND type='RAD' AND date>=" + str(admit) +
-                   " AND date<=" + str(discharge) +
-                   " ORDER BY date ASC")
+            rows = self.collection.Rads_Incidentals.find( { "encounterid": str(encounterid) } ).sort([("date",1)])
+    
+            # cursor.execute("SELECT * FROM PSO.rads_incidentals WHERE encounterid=" + encounterid + 
+            #     " ORDER BY date ASC")
 
-            rows = cursor.fetchall()
+            # rows = cursor.fetchall()
 
-            for (text) in rows:
+            # for (text) in rows:
+                # row = {
+                #     "id": text[0],
+                #     "encounterid": text[1],
+                #     "date": text[2],
+                #     "type": text[3],
+                #     "text": text[4],
+                # }
 
-                row = {
-                    "id": text[0],
-                    "encounterid": text[1],
-                    "date": text[2],
-                    "type": text[3],
-                    "text": text[4],
-                }
+                # reports.append(row)
 
+            for row in list(rows):
+                row["_id"] = str(row["_id"])
+                row["text"] = row.pop("report")
                 reports.append(row)
  
         message = {}
