@@ -3,7 +3,6 @@ falcon-auth==1.0.3
 falcon-cors-1.1.7
 spacy==1.8.0
 scikit-learn==0.19.0
-gunicorn
 pytest
 logging==0.4.9.6
 gunicorn==19.7.1
