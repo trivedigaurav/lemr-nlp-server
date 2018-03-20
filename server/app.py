@@ -1,5 +1,7 @@
 import falcon
 from falcon_cors import CORS
+from falcon_auth import FalconAuthMiddleware, BasicAuthBackend
+
 from .test import Resource
 from .login import Login
 from .getreport import *
@@ -10,12 +12,17 @@ from .getencounter import *
 from .database import *
 database = connection['lemr']
 
-# For developement only
+# For dev use only
 # disable Cross-Origin Resource Sharing (CORS) in prod
 cors = CORS(allow_origins_list=['http://localhost:8000'],
             allow_all_headers=True,
             allow_all_methods=True)
-application = falcon.API(middleware=[cors.middleware])
+
+#falcon-auth
+user_loader = lambda username, password: { 'username': username }
+auth_middleware = FalconAuthMiddleware(BasicAuthBackend(user_loader))
+
+application = falcon.API(middleware=[cors.middleware, auth_middleware])
 
 test = Resource()
 application.add_route('/test', test)
