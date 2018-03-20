@@ -15,22 +15,22 @@ database = connection['lemr']
 cors = CORS(allow_origins_list=['http://localhost:8000'],
             allow_all_headers=True,
             allow_all_methods=True)
-api = application = falcon.API(middleware=[cors.middleware])
+application = falcon.API(middleware=[cors.middleware])
 
 test = Resource()
-api.add_route('/test', test)
+application.add_route('/test', test)
 
 login = Login()
-api.add_route('/login', login)
+application.add_route('/login', login)
 
 getReport = GetReportById(database)
-api.add_route('/getReport/{report_id}', getReport)
+application.add_route('/getReport/{report_id}', getReport)
 
 putLogEvent = PutLogEvent()
-api.add_route('/logEvent/{event_name}', putLogEvent)
+application.add_route('/logEvent/{event_name}', putLogEvent)
 
 annotator = Annotator(database)
-api.add_route('/annotator/{event}/{uid}', annotator)
+application.add_route('/annotator/{event}/{uid}', annotator)
 
 getEncounter = GetReportsByEncounter(database)
-api.add_route('/getEncounter/{encounterid}', getEncounter)
+application.add_route('/getEncounter/{encounterid}', getEncounter)
