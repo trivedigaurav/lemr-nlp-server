@@ -37,9 +37,9 @@ def set_up_logging():
     # logging.basicConfig(format=format, level=logging.DEBUG)
     return logger
 
-def logEvent(event, message):
+def logEvent(event, message, level=20):
     logger = set_up_logging()
-    logger.info(event + ":\t"+ message)
+    logger.log(level, event + ":\t"+ message)
 
 
 
