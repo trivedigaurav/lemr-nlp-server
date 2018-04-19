@@ -11,9 +11,9 @@ from .putlogevent import *
 from .database import *
 database = connection['lemr']
 
-# For dev use only
-# disable Cross-Origin Resource Sharing (CORS) in prod
-cors = CORS(allow_origins_list=['http://localhost:8000'],
+UI_PORT = "8000"
+
+cors = CORS(allow_origins_list=['http://localhost:'+UI_PORT],
             allow_all_headers=True,
             allow_all_methods=True)
 
