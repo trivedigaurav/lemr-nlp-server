@@ -9,9 +9,10 @@ class Annotation(Document):
     # __collection__ = 'annotations'
     # __database__ = 'lemr'
     structure = {
-        'uid': unicode,         #annotation_id
+        'uid': unicode,         #annotator_user_id
         'report': basestring,   #reportid
         'annotation': unicode,
+        'date': datetime.datetime
     }
 
 

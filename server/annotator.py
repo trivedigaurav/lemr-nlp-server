@@ -3,7 +3,7 @@ import falcon
 from .logger import logEvent
 from bson.objectid import ObjectId
 
-current_userid = "test"
+current_userid = "pso"
 
 class Annotator(object):
 
@@ -50,7 +50,8 @@ class Annotator(object):
             record = {
                 'uid': current_userid,
                 'report': uid,
-                'annotation': annotation
+                'annotation': annotation,
+                'date': datetime.now()
             }
 
             p = self.collection.Annotation.find_and_modify(
