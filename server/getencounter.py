@@ -2,9 +2,18 @@ import json
 import falcon
 # import mysql.connector
 
-from .admitdate_map import *
-from .discharge_map import *
+# from .admitdate_map import *
+# from .discharge_map import *
 from .incidental_map import *
+
+# import os
+# print os.getcwd()
+
+with open('server/admitdate_map.json', 'r') as fp:
+    admitdate_map = json.load(fp)
+
+with open('server/discharge_map.json', 'r') as fp:
+    discharge_map = json.load(fp)
 
 # cnx = mysql.connector.connect(user='lemr', password='Lx16022!HKCQ', database='PSO')
 # cursor = cnx.cursor()
@@ -12,7 +21,8 @@ from .incidental_map import *
 class GetReportsByEncounter(object):
 
     def __init__(self, database):
-        self.collection = database.rads_incidentals
+        self.collection = database.rads_trauma_clean
+        # self.database = database
 
     def on_get(self, req, resp, encounterid):
         reports = []
@@ -40,7 +50,8 @@ class GetReportsByEncounter(object):
             #        " AND date<=" + str(discharge) +
             #        " ORDER BY date ASC")
 
-            rows = self.collection.Rads_Incidentals.find( { "encounterid": str(encounterid) } ).sort([("date",1)])
+            # print str(encounterid)
+            rows = self.collection.Rads_Trauma_Clean.find( { "encounterid": str(encounterid) } ).sort([("date",1)])
     
             # cursor.execute("SELECT * FROM PSO.rads_incidentals WHERE encounterid=" + encounterid + 
             #     " ORDER BY date ASC")

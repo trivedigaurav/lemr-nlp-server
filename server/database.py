@@ -15,20 +15,30 @@ class Annotation(Document):
         'date': datetime.datetime
     }
 
+# class Reports(Document):
+#     # __collection__ = 'reports'
+#     # __database__ = 'lemr'
+#     structure = {
+#         "id": int,
+#         "encounterid": int,
+#         "date": int,
+#         "type": basestring,
+#         "report": basestring
+#     }
 
-class Reports(Document):
-    # __collection__ = 'reports'
-    # __database__ = 'lemr'
-    structure = {
-        "id": int,
-        "encounterid": int,
-        "date": int,
-        "type": basestring,
-        "report": basestring
-    }
+# class Rads_Incidentals(Document):
+#     # __collection__ = 'rads_incidentals'
+#     # __database__ = 'lemr'
+#     structure = {
+#         "id": int,
+#         "encounterid": int,
+#         "date": int,
+#         "type": basestring,
+#         "report": basestring
+#     }
 
-class Rads_Incidentals(Document):
-    # __collection__ = 'rads_incidentals'
+class Rads_Trauma_Clean(Document):
+    # __collection__ = 'rads_trauma_clean'
     # __database__ = 'lemr'
     structure = {
         "id": int,
@@ -65,4 +75,4 @@ class Signouts(Document):
     }
 
 connection = Connection(MONGODB_HOST, MONGODB_PORT)
-connection.register([Annotation, Reports, Rads_Incidentals, Signouts])
+connection.register([Annotation, Rads_Trauma_Clean, Signouts])
