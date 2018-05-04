@@ -3,30 +3,31 @@ from falcon import testing
 import json
 import pytest
 
-from server.app import api
+from server.app import application
 
 
 @pytest.fixture
 def client():
-    return testing.TestClient(api)
+    return testing.TestClient(application)
 
 
 # pytest will inject the object returned by the "client" function
 # as an additional parameter.
-def test_hello_world(client):
-    doc = {
-        'hello': [
-            {
-                'data': 'world'
-            }
-        ]
-    }
+def test_login(client):
+    message = '{"message": "OK"}'
+    response = client.simulate_get('/login')
 
-    response = client.simulate_get('/test')
-    result_doc = json.loads(response.content, encoding='utf-8')
-
-    assert result_doc == doc, "Can't return a JSON object"
+    assert response.content == message, "Can't login"
     assert response.status == falcon.HTTP_OK, "Problems setting up Falcon server"
+
+def test_mongo(client):
+    report = "8429"
+    response = client.simulate_get('/getReport/'+str(report))
+    report = json.loads(response.content, encoding='utf-8')
+
+    assert response.status == falcon.HTTP_OK, "Can't connect to database"
+    assert report['reportText'] != "", "Can't read report " + report 
+
 
 def test_scikit(client):
     try:
