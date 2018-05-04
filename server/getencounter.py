@@ -1,13 +1,9 @@
 import json
 import falcon
-# import mysql.connector
 
 # from .admitdate_map import *
 # from .discharge_map import *
 from .incidental_map import *
-
-# import os
-# print os.getcwd()
 
 with open('server/admitdate_map.json', 'r') as fp:
     admitdate_map = json.load(fp)
@@ -21,7 +17,7 @@ with open('server/discharge_map.json', 'r') as fp:
 class GetReportsByEncounter(object):
 
     def __init__(self, database):
-        self.collection = database.rads_trauma_clean
+        self.db = database
         # self.database = database
 
     def on_get(self, req, resp, encounterid):
@@ -49,9 +45,6 @@ class GetReportsByEncounter(object):
             #        " AND type='RAD' AND date>=" + str(admit) +
             #        " AND date<=" + str(discharge) +
             #        " ORDER BY date ASC")
-
-            # print str(encounterid)
-            rows = self.collection.Rads_Trauma_Clean.find( { "encounterid": str(encounterid) } ).sort([("date",1)])
     
             # cursor.execute("SELECT * FROM PSO.rads_incidentals WHERE encounterid=" + encounterid + 
             #     " ORDER BY date ASC")
@@ -69,7 +62,7 @@ class GetReportsByEncounter(object):
 
                 # reports.append(row)
 
-            for row in list(rows):
+            for row in self.db.rads_trauma_clean.find( { "encounterid": str(encounterid) } ).sort([("date",1)]):
                 row["_id"] = str(row["_id"])
                 row["text"] = row.pop("report")
                 reports.append(row)

@@ -1,3 +1,6 @@
+# from __future__ import print_function
+# import sys
+
 import json
 import falcon
 from .logger import logEvent
@@ -9,7 +12,7 @@ current_userid = "pso"
 class Annotator(object):
 
     def __init__(self, database):
-        self.collection = database.annotations
+        self.db= database
 
     #read
     def on_get(self, req, resp, event, uid):
@@ -18,7 +21,7 @@ class Annotator(object):
             resp.status = falcon.HTTP_405
         else:
 
-            annotations = self.collection.Annotation.find({
+            annotations = self.db.annotations.find({
                 'uid': current_userid,
                 'report': uid
             })
@@ -55,8 +58,13 @@ class Annotator(object):
                 'date': datetime.now()
             }
 
-            p = self.collection.Annotation.find_and_modify(
+            #https://docs.mongodb.com/manual/reference/method/db.collection.findAndModify/
+            #new - returns the new object
+            #upsert - creates a new object, if no match
+            p = self.db.annotations.find_and_modify(
                 query=record, update={"$set": record}, new=True, upsert=True)
+            
+            # print('p: ' + str(p), file=sys.stderr)
 
             j = json.loads(annotation)
             j["id"] = str(p["_id"])
@@ -74,10 +82,13 @@ class Annotator(object):
 
             updated_annotation = unicode(req.stream.read(), 'utf-8')
 
-            row = self.collection.Annotation.find_one(ObjectId(str(uid)))
-            row['annotation'] = updated_annotation
-            row.save()
+            record = {
+                "_id": ObjectId(str(uid))
+            }
 
+            row = self.db.annotations.find_and_modify(
+                query=record, update={ "$set": {"annotation": updated_annotation} })
+            
             message = {
                 'event': event,
                 'annotationId': uid,
@@ -94,9 +105,7 @@ class Annotator(object):
         if (event != "destroy"):
             resp.status = falcon.HTTP_405
         else:
-            row = self.collection.Annotation.find_one(ObjectId(str(uid)))
-            if(row):
-                row.delete()
+            row = self.db.annotations.delete_one({ "_id": ObjectId(str(uid)) })
 
             message = {
                 'event': event,

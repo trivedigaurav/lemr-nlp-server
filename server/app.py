@@ -1,17 +1,20 @@
 import falcon
 from falcon_cors import CORS
 
-from .test import Resource
+import pymongo
+from pymongo import MongoClient
+
 from .login import Login
 from .getreport import *
 from .annotator import *
 from .getencounter import *
 from .putlogevent import *
 
-from .database import *
-database = connection['lemr']
+from .settings import *
 
-UI_PORT = "8000"
+#settings
+client = MongoClient(MONGODB_HOST, MONGODB_PORT)
+database = client[DATABASE_NAME]
 
 cors = CORS(allow_origins_list=['http://localhost:'+UI_PORT],
             allow_all_headers=True,
@@ -19,20 +22,18 @@ cors = CORS(allow_origins_list=['http://localhost:'+UI_PORT],
 
 application = falcon.API(middleware=[cors.middleware])
 
-test = Resource()
-application.add_route('/test', test)
-
+#api
 login = Login()
 application.add_route('/login', login)
-
-getReport = GetReportById(database)
-application.add_route('/getReport/{report_id}', getReport)
 
 putLogEvent = PutLogEvent()
 application.add_route('/logEvent/{event_name}', putLogEvent)
 
-annotator = Annotator(database)
-application.add_route('/annotator/{event}/{uid}', annotator)
+getReport = GetReportById(database)
+application.add_route('/getReport/{report_id}', getReport)
 
 getEncounter = GetReportsByEncounter(database)
 application.add_route('/getEncounter/{encounterid}', getEncounter)
+
+annotator = Annotator(database)
+application.add_route('/annotator/{event}/{uid}', annotator)

@@ -1,9 +1,4 @@
-DEBUG = True
-
-MONGO = {
-    'DATABASE': 'database-1',
-    'HOST': 'localhost',
-    'PORT': 27017,
-    'USERNAME': '',
-    'PASSWORD': ''
-}
+MONGODB_HOST = 'localhost'
+MONGODB_PORT = 27017
+DATABASE_NAME = 'lemr'
+UI_PORT = "8000"
