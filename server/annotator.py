@@ -58,12 +58,12 @@ class Annotator(object):
                 'date': datetime.now()
             }
 
-            #https://docs.mongodb.com/manual/reference/method/db.collection.findAndModify/
-            #new - returns the new object
-            #upsert - creates a new object, if no match
-            p = self.db.annotations.find_and_modify(
-                query=record, update={"$set": record}, new=True, upsert=True)
-            
+            #http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.find_one_and_update
+            #upsert - returns the new object
+            #return_document - creates a new object, if no match
+            p = self.db.annotations.find_one_and_update(
+                record, {'$set': record}, upsert=True, return_document=ReturnDocument.AFTER)
+
             # print('p: ' + str(p), file=sys.stderr)
 
             j = json.loads(annotation)
@@ -86,8 +86,8 @@ class Annotator(object):
                 "_id": ObjectId(str(uid))
             }
 
-            row = self.db.annotations.find_and_modify(
-                query=record, update={ "$set": {"annotation": updated_annotation} })
+            row = self.db.annotations.find_one_and_update(
+                record, { "$set": {"annotation": updated_annotation} })
             
             message = {
                 'event': event,
