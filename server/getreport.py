@@ -11,7 +11,7 @@ class GetReportById(object):
         
         if report_id != None:
 
-            row = self.db.rads_trauma_clean.find_one( { "id": str(report_id) } )
+            row = self.db.rads_trauma_deid.find_one( { "id": str(report_id) } )
 
             if (row):
                 text = row["report"]

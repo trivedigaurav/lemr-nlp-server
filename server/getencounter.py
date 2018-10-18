@@ -62,7 +62,10 @@ class GetReportsByEncounter(object):
 
                 # reports.append(row)
 
-            for row in self.db.rads_trauma_clean.find( { "encounterid": str(encounterid) } ).sort([("date",1)]):
+
+            # print 'db.rads_trauma_deid.find( { "encounterid":'+ str(encounterid) + ' } ).sort([("date",1)])'
+            
+            for row in self.db.rads_trauma_deid.find( { "encounterid": str(encounterid) } ).sort([("date",1)]):
                 row["_id"] = str(row["_id"])
                 row["text"] = row.pop("report")
                 reports.append(row)
