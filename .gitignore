@@ -101,3 +101,5 @@ ENV/
 .mypy_cache/
 
 *.ipynb
+server/data/docs.csv
+server/data/sents.csv
