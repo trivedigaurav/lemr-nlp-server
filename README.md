@@ -25,6 +25,6 @@ On Windows where Gunicorn and uWSGI don’t work yet you can use Waitress server
     
 ### Running tests
      
-    pytest test/
+    pytest tests/
 
 
