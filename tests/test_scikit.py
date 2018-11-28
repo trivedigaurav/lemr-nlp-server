@@ -12,6 +12,7 @@ def test_scikit():
     except:
         assert False, 'Missing requirements. Try installing pre-requisites with pip'
 
+
     try:
         categories = ['sci.med', 'comp.graphics']
         twenty_train = fetch_20newsgroups(subset='train', categories=categories, shuffle=True, random_state=42)
@@ -35,8 +36,8 @@ def test_scikit():
     except:
         assert False, "Failed to train test LinearSVC model"
 
-    try:
 
+    try:
         if os.path.exists("pytest_model.joblib"):
             warnings.warn(UserWarning("pytest_model.joblib already exists"))
             os.remove("pytest_model.joblib")
@@ -46,6 +47,7 @@ def test_scikit():
         os.remove("pytest_model.joblib") 
     except:
         assert False, "Can't serialize test model"
+
 
     try:
         twenty_test = fetch_20newsgroups(subset='test', categories=categories, shuffle=True, random_state=42)
