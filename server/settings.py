@@ -1,4 +1,4 @@
 MONGODB_HOST = 'localhost'
 MONGODB_PORT = 27017
-DATABASE_NAME = 'lemr-combined'
+DATABASE_NAME = 'lemr-study'
 UI_PORT = "8000"
