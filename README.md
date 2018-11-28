@@ -22,5 +22,9 @@ On Windows where Gunicorn and uWSGI don’t work yet you can use Waitress server
 
     pip install waitress
     waitress-serve --port=10000 server.app
+    
+### Running tests
+     
+    pytest test/
 
 
