@@ -38,7 +38,7 @@ class Annotator(object):
                 'records': str(records)
             }
 
-            logEvent(event, str(message))
+            logEvent(event+"Annotation", str(message))
 
             resp.body = json.dumps(records, ensure_ascii=False)
             resp.status = falcon.HTTP_200
@@ -69,7 +69,7 @@ class Annotator(object):
             j = json.loads(annotation)
             j["id"] = str(p["_id"])
 
-            logEvent(event, str(j))
+            logEvent(event+"Annotation", str(j))
 
             resp.body = json.dumps(j, ensure_ascii=False)
             resp.status = falcon.HTTP_200
@@ -95,7 +95,7 @@ class Annotator(object):
                 'annotation': updated_annotation
             }
 
-            logEvent(event, str(message))
+            logEvent(event+"Annotation", str(message))
 
             resp.body = json.dumps({"id": uid})
             resp.status = falcon.HTTP_200
@@ -112,7 +112,7 @@ class Annotator(object):
                 'annotationId': uid,
             }
 
-            logEvent(event, str(message))
+            logEvent(event+"Annotation", str(message))
 
             resp.body = ""
             resp.status = falcon.HTTP_204 
