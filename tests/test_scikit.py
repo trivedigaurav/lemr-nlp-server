@@ -8,7 +8,7 @@ def test_scikit():
         from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
         from sklearn import metrics
         from sklearn.svm import LinearSVC
-        from joblib import dump, load
+        from sklearn.externals.joblib import dump, load
     except:
         assert False, 'Missing requirements. Try installing pre-requisites with pip'
 
