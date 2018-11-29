@@ -67,7 +67,7 @@ class GetReportsByEncounter(object):
             # print 'db.rads_trauma_deid.find( { "encounterid":'+ str(encounterid) + ' } ).sort([("date",1)])'
             
             for row in self.db.rads_trauma_deid.find( { "encounterid": str(encounterid) } ).sort([("date",1)]):
-                row["_id"] = str(row["_id"])
+                row.pop("_id")
                 row["text"] = row.pop("report")
                 reports.append(row)
  
@@ -78,6 +78,6 @@ class GetReportsByEncounter(object):
         message['discharge'] = discharge
 
         logEvent("getEncounter", str(message))
-        
+
         resp.body = json.dumps(message, ensure_ascii=False)
         resp.status = falcon.HTTP_200
