@@ -17,6 +17,7 @@ class GetReportById(object):
                 text = row["report"]
             else:
                 text = ""
+                logEvent("getReport", '{"reportid": reportid}', level=40)
 
             message = {
                 'reportText': text
