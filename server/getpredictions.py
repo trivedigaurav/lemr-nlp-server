@@ -1,6 +1,8 @@
 import json
 import falcon
 from .logger import logEvent
+from ast import literal_eval
+from collections import defaultdict
 
 class GetPredictions(object):
 
@@ -15,25 +17,29 @@ class GetPredictions(object):
 
         if encounterid != None:
 
-            row = self.db.encounters.find_one( { "enc_id": str(encounterid) })
+            row = self.db.encounters.find_one( { "encounter_id": str(encounterid) })
 
             if (row):
 
                 message = {
                     "class": row['gold_label'],
-                    "rationales": row['rationales']
+                    "rationales": literal_eval(row['rationales'])
                 }
 
 
                 levels = ["reports", "sections", "sentences"]
 
                 for level in levels:
-                    l_list = []
+                    l_list = defaultdict(list)
 
-                    for row in self.db[level].find( { "enc_id": str(encounterid) }, {"text": 0} ).sort([("date",1)]):
-                        row.pop("_id")
-                        l_list.append(row)
+                    for row in self.db[level].find( { "encounter_id": str(encounterid) }, {"text": 0} ).sort([("date",1)]):
+                        row["_id"] = str(row["_id"])
+                        row['rationales'] = literal_eval(row['rationales'])
 
+                        report_id = row.pop("report_id")
+                        
+                        l_list[report_id].append(row)
+                        
                     message[level] = l_list
 
 

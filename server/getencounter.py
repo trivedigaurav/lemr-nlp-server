@@ -22,7 +22,7 @@ class GetReportsByEncounter(object):
         # self.database = database
 
     def on_get(self, req, resp, encounterid):
-        reports = []
+        texts = []
 
         if encounterid != None:
 
@@ -69,10 +69,10 @@ class GetReportsByEncounter(object):
             for row in self.db.rads_trauma_deid.find( { "encounterid": str(encounterid) } ).sort([("date",1)]):
                 row.pop("_id")
                 row["text"] = row.pop("report")
-                reports.append(row)
+                texts.append(row)
  
         message = {}
-        message['reports'] = reports
+        message['texts'] = texts
         message['incidental'] = str(incidental)
         message['admit'] = admit
         message['discharge'] = discharge
