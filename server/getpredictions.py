@@ -4,6 +4,8 @@ from .logger import logEvent
 from ast import literal_eval
 from collections import defaultdict
 
+
+###NOTE: MongoDB should have indices built, otherwise this can be really slow
 ##TODO: Use actual predictions and not gold standards 
 class_var = "gold_label"
 
