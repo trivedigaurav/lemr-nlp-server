@@ -17,6 +17,7 @@ class GetPredictions(object):
     def on_get(self, req, resp, encounterid, modelid="current"):
         
         def _run_query(level, encounterid):
+            #Including text makes the query slow
             return self.db[level].find( { "encounter_id": str(encounterid) }, {"text": 0} ) \
                             .sort([("date",1)])
 
