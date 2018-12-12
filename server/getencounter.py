@@ -1,6 +1,7 @@
 import json
 import falcon
 from .logger import logEvent
+from collections import defaultdict
 
 # from .admitdate_map import *
 # from .discharge_map import *
@@ -22,7 +23,8 @@ class GetReportsByEncounter(object):
         # self.database = database
 
     def on_get(self, req, resp, encounterid):
-        texts = []
+        rads_ids = []
+        rads = defaultdict(list)
 
         if encounterid != None:
 
@@ -69,10 +71,14 @@ class GetReportsByEncounter(object):
             for row in self.db.rads_trauma_deid.find( { "encounterid": str(encounterid) } ).sort([("date",1)]):
                 row.pop("_id")
                 row["text"] = row.pop("report")
-                texts.append(row)
+
+                id_ = row["id"]
+                rads[id_] = row
+                rads_ids.append(id_)
  
         message = {}
-        message['texts'] = texts
+        message['rads'] = rads
+        message['rads_ids'] = rads_ids
         message['incidental'] = str(incidental)
         message['admit'] = admit
         message['discharge'] = discharge
