@@ -5,7 +5,7 @@ from collections import defaultdict
 
 # from .admitdate_map import *
 # from .discharge_map import *
-from .incidental_map import *
+# from .incidental_map import *
 
 with open('server/admitdate_map.json', 'r') as fp:
     admitdate_map = json.load(fp)
@@ -15,6 +15,8 @@ with open('server/discharge_map.json', 'r') as fp:
 
 # cnx = mysql.connector.connect(user='lemr', password='Lx16022!HKCQ', database='PSO')
 # cursor = cnx.cursor()
+
+## Needs an index by encounterid
 
 class GetReportsByEncounter(object):
 
@@ -38,10 +40,10 @@ class GetReportsByEncounter(object):
             else:
                 discharge = -1
 
-            if encounterid in incidental_map:
-                incidental = incidental_map[encounterid]
-            else:
-                incidental = None
+            # if encounterid in incidental_map:
+            #     incidental = incidental_map[encounterid]
+            # else:
+            #     incidental = None
 
 
             # cursor.execute("SELECT * FROM PSO.reports WHERE encounterid=" + encounterid + 
@@ -79,7 +81,7 @@ class GetReportsByEncounter(object):
         message = {}
         message['rads'] = rads
         message['rads_ids'] = rads_ids
-        message['incidental'] = str(incidental)
+        # message['incidental'] = str(incidental)
         message['admit'] = admit
         message['discharge'] = discharge
 
