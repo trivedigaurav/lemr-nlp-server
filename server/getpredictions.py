@@ -15,11 +15,6 @@ class GetPredictions(object):
         self.db = database
 
     def on_get(self, req, resp, encounterid, modelid="current"):
-        
-        def _run_query(level, encounterid):
-            #Including text makes the query slow
-            return self.db[level].find( { "encounter_id": str(encounterid) }, {"text": 0} ) \
-                            .sort([("date",1)])
 
         def _clean_row(row):
             row["_id"] = str(row["_id"])
@@ -51,32 +46,42 @@ class GetPredictions(object):
 
 
                 #Reports
-                for row in _run_query("reports", encounterid):
+                for row in self.db["reports"].find( { "encounter_id": str(encounterid) }, {"text": 0} ) \
+                            .sort([("date",1)]):
                     row_ = _clean_row(row)
                     id_ = row_["report_id"]
 
                     message["reports"][id_] = row_
                     message["reports"][id_]["pos_sections"] = []
                     message["reports"][id_]["pos_sentences"] = []
+                    message["reports"][id_]["sections"] = []
+                    message["reports"][id_]["sentences"] = []
 
                     if(row_["class"] == "pos"):
                         message["pos_reports"].append(id_)
 
+
                 #Sections
-                for row in _run_query("sections", encounterid):
+                for row in self.db["sections"].find( { "encounter_id": str(encounterid) }, {"text": 0} ) \
+                            .sort([("start",1)]):
                     row_ = _clean_row(row)
                     id_ = row_["section_id"]
 
                     message["sections"][id_] = row_
                     message["sections"][id_]["pos_sentences"] = []
+                    message["sections"][id_]["sentences"] = []
+
 
                     if(row_["class"] == "pos"):
                         message["pos_sections"].append(id_)
                         message["reports"][row_["report_id"]]["pos_sections"].append(id_)
 
+                    message["reports"][row_["report_id"]]["sections"].append(id_)
+
 
                 #Sentences
-                for row in _run_query("sentences", encounterid):
+                for row in self.db["sentences"].find( { "encounter_id": str(encounterid) }, {"text": 0} ) \
+                            .sort([("start",1)]):
                     row_ = _clean_row(row)
                     id_ = row_["sentence_id"]
 
@@ -86,6 +91,9 @@ class GetPredictions(object):
                         message["pos_sentences"].append(id_)
                         message["reports"][row_["report_id"]]["pos_sentences"].append(id_)
                         message["sections"][row_["section_id"]]["pos_sentences"].append(id_)
+
+                    message["reports"][row_["report_id"]]["sentences"].append(id_)
+                    message["sections"][row_["section_id"]]["sentences"].append(id_)                    
 
 
                 logEvent("getPredictionsByEncounter", str(message))
