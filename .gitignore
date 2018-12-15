@@ -103,3 +103,4 @@ ENV/
 *.ipynb
 server/data/docs.csv
 server/data/sents.csv
+*.bak
