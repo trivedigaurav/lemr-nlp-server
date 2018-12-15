@@ -6,6 +6,7 @@ import falcon
 from .logger import logEvent
 from bson.objectid import ObjectId
 from datetime import datetime
+from pymongo.collection import ReturnDocument
 
 current_userid = "pso"
 
