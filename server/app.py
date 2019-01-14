@@ -6,7 +6,7 @@ from pymongo import MongoClient
 
 from .login import Login
 from .getreport import *
-from .annotator import *
+# from .annotator import *
 from .getencounter import *
 from .putlogevent import *
 from .getpredictions import *
@@ -36,8 +36,9 @@ application.add_route('/getReport/{reportid}', getReport)
 getEncounter = GetReportsByEncounter(database)
 application.add_route('/getEncounter/{encounterid}', getEncounter)
 
-annotator = Annotator(database)
-application.add_route('/annotator/{event}/{uid}', annotator)
+# annotator = Annotator(database)
+# application.add_route('/annotator/{event}/{uid}', annotator)
 
 getPredictions = GetPredictions(database)
 application.add_route('/getPredictions/encounter/{encounterid}/{modelid}', getPredictions)
+application.add_route('/putFeedback/{modelid}/{override}', getPredictions)
