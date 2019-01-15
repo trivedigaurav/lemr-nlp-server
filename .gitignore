@@ -104,3 +104,4 @@ ENV/
 server/data/docs.csv
 server/data/sents.csv
 *.bak
+gunicorn.ini

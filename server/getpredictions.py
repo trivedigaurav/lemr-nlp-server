@@ -3,6 +3,7 @@ import falcon
 from .logger import logEvent
 from ast import literal_eval
 from collections import defaultdict
+import re
 
 
 ###NOTE: MongoDB should have indices built, otherwise this can be really slow
@@ -96,10 +97,99 @@ class GetPredictions(object):
                     message["sections"][row_["section_id"]]["sentences"].append(id_)                    
 
 
-                logEvent("getPredictionsByEncounter", str(message))
+                logEvent("getPredictionsByEncounter", str(message), level=10) #DEBUG=10
                 
                 resp.body = json.dumps(message, ensure_ascii=False)
                 resp.status = falcon.HTTP_200
 
             else:
                 logEvent("getPredictionsByEncounter", '{"encounterid": encounterid}', level=40)
+
+
+    def find_text(self, text, report):
+        
+        ret = {
+            "sections": set(),
+            "sentences": set()
+        }
+
+        if report:
+
+            report_text = None
+            row = self.db["rads_trauma_deid"].find_one( { "id": str(report) } )
+            if (row):
+                report_text = row["report"]
+
+            # import pdb; pdb.set_trace()
+
+            if report_text:
+                    find_all = re.finditer(re.escape(text), report_text)
+                    
+                    for match in find_all:
+
+                        pos = match.span()
+
+                        for sent in self.db["sentences"].find( { "report_id": str(report) }, \
+                            {"sentence_id":1, "section_id": 1, "start": 1, "end": 1} ):
+                            
+                            # print sentence["start"], sentence["end"]
+
+                            #Sentence is inside big annotation
+                            if(pos[0] <= sent["start"] and 
+                                pos[1] >= sent["end"]):
+                                ret["sections"].add(sent["section_id"])
+                                ret["sentences"].add(sent["sentence_id"])
+                                continue
+
+                            #Annotation starts in the middle
+                            if(pos[0] >= sent["start"] and pos[0] < sent["end"] and
+                               pos[1] >= sent["end"]):
+                                ret["sections"].add(sent["section_id"])
+                                ret["sentences"].add(sent["sentence_id"])
+                                continue
+
+                            #Annotation is contained in sentence
+                            if(pos[0] >= sent["start"] and 
+                               pos[1] < sent["end"]): 
+                                ret["sections"].add(sent["section_id"])
+                                ret["sentences"].add(sent["sentence_id"])
+                                continue
+
+                            #Annotation ends in the middle
+                            if(pos[0] < sent["start"] and
+                               pos[1] >= sent["start"] and pos[1] < sent["end"]):
+                                ret["sections"].add(sent["section_id"])
+                                ret["sentences"].add(sent["sentence_id"])
+                                continue
+
+                        # for row in self.db["sentences"].find( { "report_id": str(report) }, \
+                        #     {"sentence_id":1, "start": 1, "end": 1} ):
+                        #     print row["start"], row["end"]
+
+                        #     #search for start and end
+        return ret
+
+
+    def on_put(self, req, resp, modelid, override):
+       feedbackList = json.loads(req.stream.read(), 'utf-8')
+       
+       print feedbackList
+
+       levels = ["encounter", "report", "section", "sentence", "text"]
+
+       for feedback in feedbackList:
+            for level in levels:
+                if feedback[level]:
+                    if level == "text":
+                        print
+                        print level, feedback[level]["id"], "report=", feedback[level]["report"], "enc=", feedback[level]["encounter"]
+                        print self.find_text(text=feedback[level]["id"], report=feedback[level]["report"])
+                        print
+                    else:
+                        print level, feedback[level]["id"], feedback[level]["class"]
+
+
+
+       resp.body = json.dumps({"status": "OK"}, ensure_ascii=False)
+       resp.status = falcon.HTTP_200
+
