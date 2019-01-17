@@ -1,17 +1,21 @@
+from .logger import logEvent
+
 import json
 import falcon
-from .logger import logEvent
+import re
+import os
 from ast import literal_eval
 from collections import defaultdict
-import re
 
+from sklearn.svm import LinearSVC
+from sklearn.calibration import CalibratedClassifierCV
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.externals.joblib import dump, load
-import os
 
-###NOTE: MongoDB should have indices built, otherwise this can be really slow
-##TODO: Use actual predictions and not gold standards 
+###NOTE: MongoDB should have indices built, otherwise this can be really slow 
 class_var = "class"
 PATH_PREFIX = "models/"
+USER = "user"
 
 class SetEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -24,25 +28,28 @@ class GetPredictions(object):
     def __init__(self, database):
         self.db = database
 
-        model = 0
-
         self.levels = ["encounter", "report", "section", "sentence"]
 
         self.classifier = {}
         self.count_vect = {}
         self.tfidf_transformer = {}
 
+        try:
+            self.version = load(PATH_PREFIX + "version")
+        except:
+            self.version = 0
+
         # print os.getcwd()
 
         for level in self.levels:
 
-            path = PATH_PREFIX + level + "s_" + str(model) + ".model" 
+            path = PATH_PREFIX + level + "s_" + str(self.version) + ".model" 
             self.classifier[level] = load(path)       
         
-            path = PATH_PREFIX + level + "s_" + str(model) + ".count_vect" 
+            path = PATH_PREFIX + level + "s_" + str(self.version) + ".count_vect" 
             self.count_vect[level] = load(path)        
         
-            path = PATH_PREFIX + level + "s_" + str(model) + ".tfidf_transformer" 
+            path = PATH_PREFIX + level + "s_" + str(self.version) + ".tfidf_transformer" 
             self.tfidf_transformer[level] = load(path)    
         
     def predict_one(self, level, row):
@@ -85,7 +92,9 @@ class GetPredictions(object):
 
                     "pos_reports": set(),
                     "pos_sections": set(),
-                    "pos_sentences": set()
+                    "pos_sentences": set(),
+
+                    "model": self.version
                 }
 
 
@@ -162,7 +171,7 @@ class GetPredictions(object):
                 resp.status = falcon.HTTP_200
 
             else:
-                logEvent("getPredictionsByEncounter", '{"encounterid": encounterid}', level=40)
+                logEvent("getPredictionsByEncounter", str({"encounterid": encounterid}), level=40)
 
 
     def find_text(self, text, report):
@@ -229,25 +238,121 @@ class GetPredictions(object):
         return ret
 
 
+    def add_feedback(self, feedback):
+
+        feedback['model'] = self.version
+        feedback['user'] = USER
+        feedback["level"] += "s"
+
+        # import pdb; pdb.set_trace()
+        # print feedback
+        
+        self.db[feedback["level"]].update_one({ 
+                        feedback["level"][:-1]+'_id': feedback["id"]
+                    },
+                    {
+                        "$set":{
+                             "class": feedback["class"],
+                             "model": self.version
+                         }
+                    })
+
+        return self.db["feedbacks"].find_one_and_update( {
+                    "level": feedback["level"],
+                    "id": feedback["id"],
+                    "model": feedback["model"]
+                },
+                {"$set": feedback}, upsert=True)
+
+
+    def retrain(self):
+        for l in self.levels:
+            level = l+"s"
+
+            texts_ = []
+            classes_ = []
+            rationales_ = []
+            
+            for row in self.db[level].find({"class":{"$ne":None}}):
+                texts_.append(row['text'])
+                rationales_.append(literal_eval(row['rationales']))
+                classes_.append(row['class'])
+                
+            count_vect = CountVectorizer()
+            tfidf_transformer = TfidfTransformer()
+            
+            clf = LinearSVC(penalty="l2", dual=False, tol=1e-3)
+            classifier = CalibratedClassifierCV(clf)
+            
+            X_train_counts = count_vect.fit_transform(texts_)
+            X_train_tfidf = tfidf_transformer.fit_transform(X_train_counts)
+            
+            classifier.fit(X_train_tfidf, classes_)
+            
+            model = 0
+
+            path = "models/" + level + "_" + str(self.version) + ".model" 
+            if os.path.exists(path):
+                print path + "  already exists!"
+                os.remove(path)
+            dump(classifier, path)
+            self.classifier[level] = classifier
+            
+            path = "models/" + level + "_" + str(self.version) + ".count_vect" 
+            if os.path.exists(path):
+                print path + "  already exists!"
+                os.remove(path)
+            dump(count_vect, path)        
+            self.count_vect[level] = count_vect
+            
+            path = "models/" + level + "_" + str(self.version) + ".tfidf_transformer" 
+            if os.path.exists(path):
+                print path + "  already exists!"
+                os.remove(path)
+            dump(tfidf_transformer, path)
+            self.tfidf_transformer[level] = tfidf_transformer
+
+
     def on_put(self, req, resp, modelid, override):
        feedbackList = json.loads(req.stream.read(), 'utf-8')
        
-       print feedbackList
+       logEvent("putFeedback", str(feedbackList)) #DEBUG=10
+
+       # print feedbackList
 
        levels = ["encounter", "report", "section", "sentence", "text"]
+
+       self.version += 1
 
        for feedback in feedbackList:
             for level in levels:
                 if feedback[level]:
-                    if level == "text":
-                        print
-                        print level, feedback[level]["id"], "report=", feedback["report"].id, "enc=", feedback["encounter"].id
-                        print self.find_text(text=feedback[level]["id"], report=feedback["report"])
-                        print
+                    
+                    if (level != "text"):
+                        record = {
+                                'level': level,
+                                'id': feedback[level]["id"],
+                                'class': feedback[level]["class"]
+                        }
+
+                        if (feedback["text"]):
+                            record["feedback"] = feedback["text"]["id"]
+
+                        self.add_feedback(record)
                     else:
-                        print level, feedback[level]["id"], feedback[level]["class"]
+                        found = self.find_text(text=feedback[level]["id"], report=feedback["report"]["id"])
+
+                        # print found
+
+                        for sent in found["sentences"]:
+                            self.add_feedback({'level': "sentence", "id": sent, "class": 1, "text": feedback[level]["id"]}) #sent
+
+                        for sect in found["sections"]:
+                            self.add_feedback({'level': "section", "id": sect, "class": 1, "text": feedback[level]["id"]}) #sect
 
 
+       self.retrain()
+       dump(self.version, PATH_PREFIX + "version")
 
        resp.body = json.dumps({"status": "OK"}, ensure_ascii=False)
        resp.status = falcon.HTTP_200
