@@ -5,22 +5,59 @@ from ast import literal_eval
 from collections import defaultdict
 import re
 
+from sklearn.externals.joblib import dump, load
+import os
 
 ###NOTE: MongoDB should have indices built, otherwise this can be really slow
 ##TODO: Use actual predictions and not gold standards 
-class_var = "gold_label"
+class_var = "class"
+PATH_PREFIX = "models/"
 
 class GetPredictions(object):
 
     def __init__(self, database):
         self.db = database
 
+        model = 0
+
+        self.levels = ["encounter", "report", "section", "sentence"]
+
+        self.classifier = {}
+        self.count_vect = {}
+        self.tfidf_transformer = {}
+
+        # print os.getcwd()
+
+        for level in self.levels:
+
+            path = PATH_PREFIX + level + "s_" + str(model) + ".model" 
+            self.classifier[level] = load(path)       
+        
+            path = PATH_PREFIX + level + "s_" + str(model) + ".count_vect" 
+            self.count_vect[level] = load(path)        
+        
+            path = PATH_PREFIX + level + "s_" + str(model) + ".tfidf_transformer" 
+            self.tfidf_transformer[level] = load(path)    
+        
+    def predict_one(self, level, row):
+
+        if (class_var in row):
+            return row[class_var]
+        else:
+            texts = [row["text"]]
+
+            X_test_counts = self.count_vect[level].transform(texts)
+            X_test_tfidf = self.tfidf_transformer[level].transform(X_test_counts)
+            y_pred = self.classifier[level].predict(X_test_tfidf)
+
+            return y_pred[0]
+
     def on_get(self, req, resp, encounterid, modelid="current"):
 
-        def _clean_row(row):
+        def _clean_row(level, row):
             row["_id"] = str(row["_id"])
             row['rationales'] = literal_eval(row['rationales'])
-            row['class'] = row[class_var]
+            row['class'] = self.predict_one(level, row)
 
             return row
 
@@ -33,7 +70,7 @@ class GetPredictions(object):
             if (enc):
 
                 message = {
-                    "class": enc[class_var],
+                    "class": self.predict_one("encounter", enc),
                     "rationales": literal_eval(enc['rationales']),
                 
                     "reports": defaultdict(list),
@@ -47,9 +84,9 @@ class GetPredictions(object):
 
 
                 #Reports
-                for row in self.db["reports"].find( { "encounter_id": str(encounterid) }, {"text": 0} ) \
+                for row in self.db["reports"].find( { "encounter_id": str(encounterid) } ) \
                             .sort([("date",1)]):
-                    row_ = _clean_row(row)
+                    row_ = _clean_row("report", row)
                     id_ = row_["report_id"]
 
                     message["reports"][id_] = row_
@@ -58,14 +95,14 @@ class GetPredictions(object):
                     message["reports"][id_]["sections"] = []
                     message["reports"][id_]["sentences"] = []
 
-                    if(row_["class"] == "pos"):
+                    if(row_["class"] == 1):
                         message["pos_reports"].append(id_)
 
 
                 #Sections
-                for row in self.db["sections"].find( { "encounter_id": str(encounterid) }, {"text": 0} ) \
+                for row in self.db["sections"].find( { "encounter_id": str(encounterid) } ) \
                             .sort([("start",1)]):
-                    row_ = _clean_row(row)
+                    row_ = _clean_row("section", row)
                     id_ = row_["section_id"]
 
                     message["sections"][id_] = row_
@@ -73,7 +110,7 @@ class GetPredictions(object):
                     message["sections"][id_]["sentences"] = []
 
 
-                    if(row_["class"] == "pos"):
+                    if(row_["class"] == 1):
                         message["pos_sections"].append(id_)
                         message["reports"][row_["report_id"]]["pos_sections"].append(id_)
 
@@ -81,14 +118,14 @@ class GetPredictions(object):
 
 
                 #Sentences
-                for row in self.db["sentences"].find( { "encounter_id": str(encounterid) }, {"text": 0} ) \
+                for row in self.db["sentences"].find( { "encounter_id": str(encounterid) } ) \
                             .sort([("start",1)]):
-                    row_ = _clean_row(row)
+                    row_ = _clean_row("sentence", row)
                     id_ = row_["sentence_id"]
 
                     message["sentences"][id_] = row_
 
-                    if(row_["class"] == "pos"):
+                    if(row_["class"] == 1):
                         message["pos_sentences"].append(id_)
                         message["reports"][row_["report_id"]]["pos_sentences"].append(id_)
                         message["sections"][row_["section_id"]]["pos_sentences"].append(id_)
@@ -99,6 +136,8 @@ class GetPredictions(object):
 
                 logEvent("getPredictionsByEncounter", str(message), level=10) #DEBUG=10
                 
+                print message
+
                 resp.body = json.dumps(message, ensure_ascii=False)
                 resp.status = falcon.HTTP_200
 
@@ -182,8 +221,8 @@ class GetPredictions(object):
                 if feedback[level]:
                     if level == "text":
                         print
-                        print level, feedback[level]["id"], "report=", feedback[level]["report"], "enc=", feedback[level]["encounter"]
-                        print self.find_text(text=feedback[level]["id"], report=feedback[level]["report"])
+                        print level, feedback[level]["id"], "report=", feedback["report"].id, "enc=", feedback["encounter"].id
+                        print self.find_text(text=feedback[level]["id"], report=feedback["report"])
                         print
                     else:
                         print level, feedback[level]["id"], feedback[level]["class"]
