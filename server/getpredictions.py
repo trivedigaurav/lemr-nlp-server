@@ -43,7 +43,7 @@ class GetPredictions(object):
 
         for level in self.levels:
 
-            path = PATH_PREFIX + level + "s_" + str(self.version) + ".model" 
+            path = PATH_PREFIX + level + "s_" + str(self.version) + ".classifier" 
             self.classifier[level] = load(path)       
         
             path = PATH_PREFIX + level + "s_" + str(self.version) + ".count_vect" 
@@ -55,7 +55,7 @@ class GetPredictions(object):
     def predict_one(self, level, row):
 
         if (class_var in row):
-            return row[class_var]
+            return row[class_var] #Force user feedback
         else:
             texts = [row["text"]]
 
@@ -73,8 +73,6 @@ class GetPredictions(object):
             row['class'] = self.predict_one(level, row)
 
             return row
-
-        #TODO: Handle model revisions
 
         if encounterid != None:
 
@@ -112,7 +110,7 @@ class GetPredictions(object):
 
                     if(row_["class"] == 1):
                         message["pos_reports"].add(id_)
-                        message["class"] = 1
+                        message["class"] = 1 #Bubble up
 
 
                 #Sections
@@ -130,6 +128,7 @@ class GetPredictions(object):
                         message["pos_sections"].add(id_)
                         message["reports"][row_["report_id"]]["pos_sections"].add(id_)
 
+                        #Bubble up
                         message["reports"][row_["report_id"]]["class"] = 1
                         message["pos_reports"].add(row_["report_id"])
                         message["class"] = 1
@@ -150,6 +149,7 @@ class GetPredictions(object):
                         message["reports"][row_["report_id"]]["pos_sentences"].add(id_)
                         message["sections"][row_["section_id"]]["pos_sentences"].add(id_)
 
+                        #Bubble up
                         message["reports"][row_["report_id"]]["class"] = 1
                         message["pos_reports"].add(row_["report_id"])
 
@@ -289,9 +289,9 @@ class GetPredictions(object):
             
             classifier.fit(X_train_tfidf, classes_)
             
-            model = 0
+            #Save models to file
 
-            path = "models/" + level + "_" + str(self.version) + ".model" 
+            path = "models/" + level + "_" + str(self.version) + ".classifier" 
             if os.path.exists(path):
                 print path + "  already exists!"
                 os.remove(path)
