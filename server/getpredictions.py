@@ -13,6 +13,12 @@ import os
 class_var = "class"
 PATH_PREFIX = "models/"
 
+class SetEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, set):
+            return list(obj)
+        return json.JSONEncoder.default(self, obj)
+
 class GetPredictions(object):
 
     def __init__(self, database):
@@ -77,9 +83,9 @@ class GetPredictions(object):
                     "sections": defaultdict(list),
                     "sentences": defaultdict(list),
 
-                    "pos_reports": [],
-                    "pos_sections": [],
-                    "pos_sentences": []
+                    "pos_reports": set(),
+                    "pos_sections": set(),
+                    "pos_sentences": set()
                 }
 
 
@@ -90,13 +96,14 @@ class GetPredictions(object):
                     id_ = row_["report_id"]
 
                     message["reports"][id_] = row_
-                    message["reports"][id_]["pos_sections"] = []
-                    message["reports"][id_]["pos_sentences"] = []
+                    message["reports"][id_]["pos_sections"] = set()
+                    message["reports"][id_]["pos_sentences"] = set()
                     message["reports"][id_]["sections"] = []
                     message["reports"][id_]["sentences"] = []
 
                     if(row_["class"] == 1):
-                        message["pos_reports"].append(id_)
+                        message["pos_reports"].add(id_)
+                        message["class"] = 1
 
 
                 #Sections
@@ -106,13 +113,17 @@ class GetPredictions(object):
                     id_ = row_["section_id"]
 
                     message["sections"][id_] = row_
-                    message["sections"][id_]["pos_sentences"] = []
+                    message["sections"][id_]["pos_sentences"] = set()
                     message["sections"][id_]["sentences"] = []
 
 
                     if(row_["class"] == 1):
-                        message["pos_sections"].append(id_)
-                        message["reports"][row_["report_id"]]["pos_sections"].append(id_)
+                        message["pos_sections"].add(id_)
+                        message["reports"][row_["report_id"]]["pos_sections"].add(id_)
+
+                        message["reports"][row_["report_id"]]["class"] = 1
+                        message["pos_reports"].add(row_["report_id"])
+                        message["class"] = 1
 
                     message["reports"][row_["report_id"]]["sections"].append(id_)
 
@@ -126,9 +137,18 @@ class GetPredictions(object):
                     message["sentences"][id_] = row_
 
                     if(row_["class"] == 1):
-                        message["pos_sentences"].append(id_)
-                        message["reports"][row_["report_id"]]["pos_sentences"].append(id_)
-                        message["sections"][row_["section_id"]]["pos_sentences"].append(id_)
+                        message["pos_sentences"].add(id_)
+                        message["reports"][row_["report_id"]]["pos_sentences"].add(id_)
+                        message["sections"][row_["section_id"]]["pos_sentences"].add(id_)
+
+                        message["reports"][row_["report_id"]]["class"] = 1
+                        message["pos_reports"].add(row_["report_id"])
+
+                        message["sections"][row_["section_id"]]["class"] = 1
+                        message["pos_sections"].add(row_["section_id"])
+
+                        message["class"] = 1
+
 
                     message["reports"][row_["report_id"]]["sentences"].append(id_)
                     message["sections"][row_["section_id"]]["sentences"].append(id_)                    
@@ -136,9 +156,9 @@ class GetPredictions(object):
 
                 logEvent("getPredictionsByEncounter", str(message), level=10) #DEBUG=10
                 
-                print message
+                # print message
 
-                resp.body = json.dumps(message, ensure_ascii=False)
+                resp.body = json.dumps(message, ensure_ascii=False, cls=SetEncoder)
                 resp.status = falcon.HTTP_200
 
             else:
