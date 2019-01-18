@@ -235,6 +235,14 @@ class GetPredictions(object):
                         #     print row["start"], row["end"]
 
                         #     #search for start and end
+        
+
+        if len(ret["sections"]) == 0:
+            logEvent("getPredictionsByEncounter", "Feedback not found in any section - " + text, level=40)
+
+        if len(ret["sentences"]) == 0:
+            logEvent("getPredictionsByEncounter", "Feedback not found in any sentence - " + text, level=40)
+
         return ret
 
 
@@ -314,17 +322,17 @@ class GetPredictions(object):
 
 
     def on_put(self, req, resp, modelid, override):
-       feedbackList = json.loads(req.stream.read(), 'utf-8')
-       
-       logEvent("putFeedback", str(feedbackList)) #DEBUG=10
+        feedbackList = json.loads(req.stream.read(), 'utf-8')
 
-       # print feedbackList
+        logEvent("putFeedback", str(feedbackList)) #DEBUG=10
 
-       levels = ["encounter", "report", "section", "sentence", "text"]
+        # print feedbackList
 
-       self.version += 1
+        levels = ["encounter", "report", "section", "sentence", "text"]
 
-       for feedback in feedbackList:
+        self.version += 1
+
+        for feedback in feedbackList:
             for level in levels:
                 if feedback[level]:
                     
@@ -342,6 +350,7 @@ class GetPredictions(object):
                     else:
                         found = self.find_text(text=feedback[level]["id"], report=feedback["report"]["id"])
 
+                        # import pdb; pdb.set_trace()
                         # print found
 
                         for sent in found["sentences"]:
@@ -351,9 +360,11 @@ class GetPredictions(object):
                             self.add_feedback({'level': "section", "id": sect, "class": 1, "text": feedback[level]["id"]}) #sect
 
 
-       self.retrain()
-       dump(self.version, PATH_PREFIX + "version")
+        self.retrain()
+        dump(self.version, PATH_PREFIX + "version")
 
-       resp.body = json.dumps({"status": "OK"}, ensure_ascii=False)
-       resp.status = falcon.HTTP_200
+        logEvent("getPredictionsByEncounter", "Model updated to version " + str(self.version) + " in " + PATH_PREFIX, level=40)
+
+        resp.body = json.dumps({"status": "OK"}, ensure_ascii=False)
+        resp.status = falcon.HTTP_200
 
