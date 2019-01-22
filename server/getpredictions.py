@@ -4,7 +4,7 @@ import json
 import falcon
 import re
 import os
-from ast import literal_eval
+
 from collections import defaultdict
 
 from sklearn.svm import LinearSVC
@@ -69,7 +69,7 @@ class GetPredictions(object):
 
         def _clean_row(level, row):
             row["_id"] = str(row["_id"])
-            row['rationales'] = literal_eval(row['rationales'])
+            row.pop('rationales', None)
             row['class'] = self.predict_one(level, row)
 
             return row
@@ -82,7 +82,7 @@ class GetPredictions(object):
 
                 message = {
                     "class": self.predict_one("encounter", enc),
-                    "rationales": literal_eval(enc['rationales']),
+                    "rationale_list": enc['rationale_list'],
                 
                     "reports": defaultdict(list),
                     "sections": defaultdict(list),
@@ -114,8 +114,7 @@ class GetPredictions(object):
 
 
                 #Sections
-                for row in self.db["sections"].find( { "encounter_id": str(encounterid) } ) \
-                            .sort([("start",1)]):
+                for row in self.db["sections"].find( { "encounter_id": str(encounterid) } ):
                     row_ = _clean_row("section", row)
                     id_ = row_["section_id"]
 
@@ -137,8 +136,7 @@ class GetPredictions(object):
 
 
                 #Sentences
-                for row in self.db["sentences"].find( { "encounter_id": str(encounterid) } ) \
-                            .sort([("start",1)]):
+                for row in self.db["sentences"].find( { "encounter_id": str(encounterid) } ):
                     row_ = _clean_row("sentence", row)
                     id_ = row_["sentence_id"]
 
@@ -255,15 +253,21 @@ class GetPredictions(object):
         # import pdb; pdb.set_trace()
         # print feedback
         
+        update_obj = {
+            "$set":{
+                 "class": feedback["class"],
+                 "model": self.version
+            }
+        }
+
+        if ("text" in feedback):
+            update_obj["$push"] = {
+                'feedback': feedback["text"]
+            }
+
         self.db[feedback["level"]].update_one({ 
                         feedback["level"][:-1]+'_id': feedback["id"]
-                    },
-                    {
-                        "$set":{
-                             "class": feedback["class"],
-                             "model": self.version
-                         }
-                    })
+                    }, update_obj)
 
         return self.db["feedbacks"].find_one_and_update( {
                     "level": feedback["level"],
@@ -283,8 +287,14 @@ class GetPredictions(object):
             
             for row in self.db[level].find({"class":{"$ne":None}}):
                 texts_.append(row['text'])
-                rationales_.append(literal_eval(row['rationales']))
                 classes_.append(row['class'])
+
+                #add rationales for sentences
+                if (level == "sentences"):
+                    for rationale in row['feedback']:
+                        texts_.append(rationale)
+                        classes_.append(1)
+
                 
             count_vect = CountVectorizer()
             tfidf_transformer = TfidfTransformer()
@@ -344,7 +354,7 @@ class GetPredictions(object):
                         }
 
                         if (feedback["text"]):
-                            record["feedback"] = feedback["text"]["id"]
+                            record["text"] = feedback["text"]["id"]
 
                         self.add_feedback(record)
                     else:

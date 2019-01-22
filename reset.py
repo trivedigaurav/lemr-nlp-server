@@ -54,8 +54,12 @@ def add_feedback():
                 db[level].update_one({ '_id': row['_id']},
                                      {"$set":{
                                          "class": class_,
-                                         "model": 0
-                                     }}
+                                         "model": 0,
+                                        },
+                                      "$push":{
+                                        'feedback': {"$each": literal_eval(row['rationales'])}
+                                      }
+                                     }
                                     )
                 
                 feedback = {
@@ -88,15 +92,18 @@ def create_models():
 
     #Create model 0
     for level in levels:
-        
         texts_ = []
         classes_ = []
-        rationales_ = []
         
         for row in db[level].find({"class":{"$ne":None}}):
             texts_.append(row['text'])
-            rationales_.append(literal_eval(row['rationales']))
             classes_.append(row['class'])
+
+            #add rationales for sentences
+            if (level == "sentences"):
+                for rationale in row['feedback']:
+                    texts_.append(rationale)
+                    classes_.append(1)
             
         count_vect = CountVectorizer()
         tfidf_transformer = TfidfTransformer()
