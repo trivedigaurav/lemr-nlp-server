@@ -16,7 +16,7 @@ Install the Python modules required by this project. You may also do this within
   You can run the above example using any WSGI server, such as uWSGI or Gunicorn. For example:
     
     pip install gunicorn
-    gunicorn --reload -b 127.0.0.1:10000 server.app
+    gunicorn --reload -b 127.0.0.1:10000 server.app --reload-extra-file models/sentences_0.classifier
 
 On Windows where Gunicorn and uWSGI don’t work yet you can use Waitress server
 
