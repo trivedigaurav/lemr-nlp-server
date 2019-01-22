@@ -293,7 +293,7 @@ class GetPredictions(object):
                 if (level == "sentences"):
                     for rationale in row['feedback']:
                         texts_.append(rationale)
-                        classes_.append(1)
+                        classes_.append(row['class'])
 
                 
             count_vect = CountVectorizer()
