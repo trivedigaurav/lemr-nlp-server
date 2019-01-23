@@ -262,12 +262,36 @@ class GetPredictions(object):
 
         if ("text" in feedback):
             update_obj["$push"] = {
-                'feedback': feedback["text"]
+                'rationale_list': feedback["text"]
             }
 
-        self.db[feedback["level"]].update_one({ 
+        
+        #Propagate high-level negative feedback
+        #All positive feedbacks are handled by the UI
+
+        if (feedback["class"] == 0):
+
+            # import pdb; pdb.set_trace();
+
+            try:
+                index = self.levels.index(feedback["level"][:-1])
+
+                while (index < len(self.levels)):
+
+                    level = self.levels[index]
+
+                    self.db[level+"s"].update_many({ 
                         feedback["level"][:-1]+'_id': feedback["id"]
                     }, update_obj)
+
+                    index += 1
+            except:
+                logEvent("getPredictionsByEncounter", "Unable to process feedback: " + str(feedback), level=40)
+        else:
+            self.db[feedback["level"]].update_one({ 
+                        feedback["level"][:-1]+'_id': feedback["id"]
+                    }, update_obj)
+
 
         return self.db["feedbacks"].find_one_and_update( {
                     "level": feedback["level"],
@@ -291,7 +315,7 @@ class GetPredictions(object):
 
                 #add rationales for sentences
                 if (level == "sentences"):
-                    for rationale in row['feedback']:
+                    for rationale in row['rationale_list']:
                         texts_.append(rationale)
                         classes_.append(row['class'])
 
