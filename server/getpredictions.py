@@ -82,7 +82,7 @@ class GetPredictions(object):
 
                 message = {
                     "class": self.predict_one("encounter", enc),
-                    "rationale_list": enc['rationale_list'],
+                    # "rationale_list": enc['rationale_list'],
                 
                     "reports": defaultdict(list),
                     "sections": defaultdict(list),
@@ -314,7 +314,7 @@ class GetPredictions(object):
                 classes_.append(row['class'])
 
                 #add rationales for sentences
-                if (level == "sentences"):
+                if (level == "sentences" and "rationale_list" in row):
                     for rationale in row['rationale_list']:
                         texts_.append(rationale)
                         classes_.append(row['class'])
