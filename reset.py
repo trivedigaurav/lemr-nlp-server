@@ -33,7 +33,7 @@ def remove_feedback():
                                      {
                                         "$unset":{
                                             "class": True,
-                                            "feedback": True
+                                            "rationale_list": True
                                         }
                                      })
 
@@ -57,7 +57,7 @@ def add_feedback():
                                          "model": 0,
                                         },
                                       "$push":{
-                                        'feedback': {"$each": literal_eval(row['rationales'])}
+                                        'rationale_list': {"$each": literal_eval(row['rationales'])}
                                       }
                                      }
                                     )
@@ -101,7 +101,7 @@ def create_models():
 
             #add rationales for sentences
             if (level == "sentences"):
-                for rationale in row['feedback']:
+                for rationale in row['rationale_list']:
                     texts_.append(rationale)
                     classes_.append(1)
             
