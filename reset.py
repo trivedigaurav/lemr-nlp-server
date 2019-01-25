@@ -108,8 +108,8 @@ def create_models():
         count_vect = CountVectorizer()
         tfidf_transformer = TfidfTransformer()
         
-        clf = LinearSVC(penalty="l2", dual=False, tol=1e-3)
-        classifier = CalibratedClassifierCV(clf)
+        classifier = LinearSVC(penalty="l2", dual=False, tol=1e-3)
+        # classifier = CalibratedClassifierCV(classifier)
         
         X_train_counts = count_vect.fit_transform(texts_)
         X_train_tfidf = tfidf_transformer.fit_transform(X_train_counts)
