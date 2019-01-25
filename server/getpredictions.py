@@ -153,6 +153,8 @@ class GetPredictions(object):
 
                         message["sections"][row_["section_id"]]["class"] = 1
                         message["pos_sections"].add(row_["section_id"])
+                        message["reports"][row_["report_id"]]["pos_sections"].add(row_["section_id"])
+
 
                         message["class"] = 1
 
@@ -323,8 +325,8 @@ class GetPredictions(object):
             count_vect = CountVectorizer()
             tfidf_transformer = TfidfTransformer()
             
-            clf = LinearSVC(penalty="l2", dual=False, tol=1e-3)
-            classifier = CalibratedClassifierCV(clf)
+            classifier = LinearSVC(penalty="l2", dual=False, tol=1e-3)
+            # classifier = CalibratedClassifierCV(classifier)
             
             X_train_counts = count_vect.fit_transform(texts_)
             X_train_tfidf = tfidf_transformer.fit_transform(X_train_counts)
