@@ -33,23 +33,24 @@ def remove_feedback():
                                      {
                                         "$unset":{
                                             "class": True,
-                                            "rationale_list": True
+                                            "rationale_list": True,
+                                            "model": True
                                         }
                                      })
+
+    db["feedbacks"].remove({})
 
 
 def add_feedback():
     #Populate feedbacks
-    db["feedbacks"].remove({})
-
     for enc in initial_ids:
         for level in levels:
-            for row in db[level].find({"encounter_id": enc}):
+            for row in db[level].find({"encounter_id": enc}): 
                 if (row["gold_label"] == "neg"):
                     class_ = 0
                 else:
                     class_ = 1
-                
+
                 #Update levels
                 db[level].update_one({ '_id': row['_id']},
                                      {"$set":{
