@@ -140,6 +140,8 @@ def create_models():
 
 if __name__ == '__main__':
     
+    print "Using db", settings.DATABASE_NAME
+
     print "(1/3) Removing feedback"
     remove_feedback()
     
