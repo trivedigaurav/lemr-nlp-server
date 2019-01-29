@@ -57,13 +57,15 @@ class GetPredictions(object):
         if (class_var in row):
             return row[class_var] #Force user feedback
         else:
-            texts = [row["text"]]
+            return 0
+        # else:
+        #     texts = [row["text"]]
 
-            X_test_counts = self.count_vect[level].transform(texts)
-            X_test_tfidf = self.tfidf_transformer[level].transform(X_test_counts)
-            y_pred = self.classifier[level].predict(X_test_tfidf)
+        #     X_test_counts = self.count_vect[level].transform(texts)
+        #     X_test_tfidf = self.tfidf_transformer[level].transform(X_test_counts)
+        #     y_pred = self.classifier[level].predict(X_test_tfidf)
 
-            return y_pred[0]
+        #     return y_pred[0]
 
     def on_get(self, req, resp, encounterid, modelid="current"):
 
