@@ -17,6 +17,12 @@ class_var = "class"
 PATH_PREFIX = "models/"
 USER = "user"
 
+with open('data/control.json', 'r') as fp:
+    enc_control = json.load(fp)
+
+with open('data/intervention.json', 'r') as fp:
+    enc_intervention = json.load(fp)
+
 class SetEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, set):
@@ -52,25 +58,30 @@ class GetPredictions(object):
             path = PATH_PREFIX + level + "s_" + str(self.version) + ".tfidf_transformer" 
             self.tfidf_transformer[level] = load(path)    
         
-    def predict_one(self, level, row):
+    
+    def predict_one(self, level, row, cond_control):
 
         if (class_var in row):
             return row[class_var] #Force user feedback
         else:
-            texts = [row["text"]]
+            if cond_control:            
+                return 0 #No predictions
+            else:
+                texts = [row["text"]]
 
-            X_test_counts = self.count_vect[level].transform(texts)
-            X_test_tfidf = self.tfidf_transformer[level].transform(X_test_counts)
-            y_pred = self.classifier[level].predict(X_test_tfidf)
+                X_test_counts = self.count_vect[level].transform(texts)
+                X_test_tfidf = self.tfidf_transformer[level].transform(X_test_counts)
+                y_pred = self.classifier[level].predict(X_test_tfidf)
 
-            return y_pred[0]
+                return y_pred[0]
+
 
     def on_get(self, req, resp, encounterid, modelid="current"):
 
-        def _clean_row(level, row):
+        def _clean_row(level, row, cond_control):
             row["_id"] = str(row["_id"])
             row.pop('rationales', None)
-            row['class'] = self.predict_one(level, row)
+            row['class'] = self.predict_one(level, row, cond_control)
 
             return row
 
@@ -78,10 +89,17 @@ class GetPredictions(object):
 
             enc = self.db.encounters.find_one( { "encounter_id": str(encounterid) })
 
+            if encounterid in enc_control:
+                print "Control", encounterid
+                cond_control = True
+            else:
+                print "Intervention", encounterid
+                cond_control = False
+
             if (enc):
 
                 message = {
-                    "class": self.predict_one("encounter", enc),
+                    "class": self.predict_one("encounter", enc, cond_control),
                     # "rationale_list": enc['rationale_list'],
                 
                     "reports": defaultdict(list),
@@ -99,7 +117,7 @@ class GetPredictions(object):
                 #Reports
                 for row in self.db["reports"].find( { "encounter_id": str(encounterid) } ) \
                             .sort([("date",1)]):
-                    row_ = _clean_row("report", row)
+                    row_ = _clean_row("report", row, cond_control)
                     id_ = row_["report_id"]
 
                     message["reports"][id_] = row_
@@ -115,7 +133,7 @@ class GetPredictions(object):
 
                 #Sections
                 for row in self.db["sections"].find( { "encounter_id": str(encounterid) } ):
-                    row_ = _clean_row("section", row)
+                    row_ = _clean_row("section", row, cond_control)
                     id_ = row_["section_id"]
 
                     message["sections"][id_] = row_
@@ -137,7 +155,7 @@ class GetPredictions(object):
 
                 #Sentences
                 for row in self.db["sentences"].find( { "encounter_id": str(encounterid) } ):
-                    row_ = _clean_row("sentence", row)
+                    row_ = _clean_row("sentence", row, cond_control)
                     id_ = row_["sentence_id"]
 
                     message["sentences"][id_] = row_
