@@ -7,10 +7,10 @@ from collections import defaultdict
 # from .discharge_map import *
 # from .incidental_map import *
 
-with open('server/admitdate_map.json', 'r') as fp:
+with open('data/admitdate_map.json', 'r') as fp:
     admitdate_map = json.load(fp)
 
-with open('server/discharge_map.json', 'r') as fp:
+with open('data/discharge_map.json', 'r') as fp:
     discharge_map = json.load(fp)
 
 # cnx = mysql.connector.connect(user='lemr', password='Lx16022!HKCQ', database='PSO')

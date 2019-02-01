@@ -22,7 +22,7 @@ client = MongoClient(settings.MONGODB_HOST, settings.MONGODB_PORT)
 db = client[settings.DATABASE_NAME]
 levels = ["encounters", "reports", "sections", "sentences"]
 
-with open('initial_ids.json') as json_file:  
+with open('data/initial_ids.json') as json_file:  
     initial_ids = json.load(json_file)
 
 
