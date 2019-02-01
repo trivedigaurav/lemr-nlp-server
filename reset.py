@@ -84,12 +84,13 @@ def add_feedback():
 def create_models():
     #Delete exisiting
     for file in os.listdir(PATH_PREFIX):
-        file_path = os.path.join(PATH_PREFIX, file)
-        try:
-            if os.path.isfile(file_path):
-                os.unlink(file_path)
-        except Exception as e:
-            print(e)
+        if file[0] != ".": #hidden file
+            file_path = os.path.join(PATH_PREFIX, file)
+            try:
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
+            except Exception as e:
+                print(e)
 
     #Create model 0
     for level in levels:
