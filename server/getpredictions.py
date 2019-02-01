@@ -163,7 +163,7 @@ class GetPredictions(object):
                     message["sections"][row_["section_id"]]["sentences"].append(id_)                    
 
 
-                logEvent("getPredictionsByEncounter", "OK") #DEBUG=10
+                logEvent("getPredictionsByEncounter", str({"encounterid": encounterid})) #DEBUG=10
                 
                 # print message
 
@@ -381,8 +381,8 @@ class GetPredictions(object):
         }
         
 
-        print level, pos_id
-        
+        # print level, pos_id
+
         self.db[level+"s"].update_one({ 
             level+"_id": pos_id
         }, update_obj)
@@ -434,7 +434,7 @@ class GetPredictions(object):
         self.retrain()
         dump(self.version, PATH_PREFIX + "version")
 
-        logEvent("getPredictionsByEncounter", "Model updated to version " + str(self.version) + " in " + PATH_PREFIX)
+        logEvent("newModel", str({"version": self.version, "path": PATH_PREFIX}))
 
         resp.body = json.dumps({"status": "OK"}, ensure_ascii=False)
         resp.status = falcon.HTTP_200
