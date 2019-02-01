@@ -295,12 +295,12 @@ class GetPredictions(object):
                     }, update_obj)
 
 
-        return self.db["feedbacks"].find_one_and_update( {
-                    "level": feedback["level"],
-                    "id": feedback["id"],
-                    "model": feedback["model"]
-                },
-                {"$set": feedback}, upsert=True)
+        # return self.db["feedbacks"].find_one_and_update( {
+        #             "level": feedback["level"],
+        #             "id": feedback["id"],
+        #             "model": feedback["model"]
+        #         },
+        #         {"$set": feedback}, upsert=True)
 
 
     def retrain(self):
@@ -357,10 +357,39 @@ class GetPredictions(object):
             self.tfidf_transformer[level] = tfidf_transformer
 
 
-    def on_put(self, req, resp, modelid, override):
-        feedbackList = json.loads(req.stream.read(), 'utf-8')
+    def set_neg_feedback(self, encounter_id):
+        update_obj = {
+            "$set":{
+                 "class": 0,
+                 "model": self.version
+            }
+        }
 
-        logEvent("putFeedback", str(feedbackList)) #DEBUG=10
+        # ["encounter", "report", "section", "sentence"]
+        for level in self.levels:
+            self.db[level+"s"].update_many({ 
+                    "encounter_id": encounter_id
+                    }, update_obj)
+
+
+    def add_pos_feedback(self, pos_id, level):
+        update_obj = {
+            "$set":{
+                 "class": 1,
+                 "model": self.version
+            }
+        }
+        
+
+        print level, pos_id
+        
+        self.db[level+"s"].update_one({ 
+            level+"_id": pos_id
+        }, update_obj)
+
+    def on_put(self, req, resp, modelid, override):
+        feedbackObj = json.loads(req.stream.read(), 'utf-8')
+        logEvent("putFeedback", str(feedbackObj)) #DEBUG=10
 
         # print feedbackList
 
@@ -368,7 +397,13 @@ class GetPredictions(object):
 
         self.version += 1
 
-        for feedback in feedbackList:
+        self.set_neg_feedback(feedbackObj["encounter_id"])
+
+        for level in levels[:-1]:
+            for pos_id in feedbackObj["pos_"+level+"s"]:
+                self.add_pos_feedback(pos_id, level)
+
+        for feedback in feedbackObj["list"]:
             for level in levels:
                 if feedback[level]:
                     
