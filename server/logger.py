@@ -16,7 +16,6 @@ import sys
 
 
 def set_up_logging():
-
     file_path = sys.modules[__name__].__file__
     project_path = os.path.dirname(os.path.dirname(file_path))
     log_location = project_path + '/logs/'
@@ -30,18 +29,16 @@ def set_up_logging():
     with open(file_location, 'a+'):
         pass
 
-    print "Logging to file", file_location
-
+    logger = logging.getLogger(__name__)
     format = '[%(asctime)s] [%(levelname)s] [%(message)s]'
     # To store in file
     logging.basicConfig(format=format, filemode='a+', filename=file_location, level=logging.DEBUG)
     # To print only
     # logging.basicConfig(format=format, level=logging.DEBUG)
-
-set_up_logging();
+    return logger
 
 def logEvent(event, message, level=20):
-    logger = logging.getLogger(__name__)
+    logger = set_up_logging()
     logger.log(level, event + ":\t"+ message)
 
 
