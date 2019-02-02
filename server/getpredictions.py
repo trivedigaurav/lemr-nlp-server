@@ -454,7 +454,7 @@ class GetPredictionsControl(GetPredictionsBase):
         self.db = database
         self.path_prefix = CONDITIONS["control"]["path_prefix"]
 
-        print self.path_prefix
+        print self.condition, self.path_prefix
 
         self.levels = ["encounter", "report", "section", "sentence"]
 
@@ -499,7 +499,7 @@ class GetPredictionsIntervention(GetPredictionsBase):
         self.db = database
         self.path_prefix = CONDITIONS["intervention"]["path_prefix"]
 
-        print self.path_prefix
+        print self.condition, self.path_prefix
 
         self.levels = ["encounter", "report", "section", "sentence"]
 
