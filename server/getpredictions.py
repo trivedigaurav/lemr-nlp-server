@@ -22,7 +22,7 @@ class GetPredictions(object):
 
     def __init__(self, client):
         with open('data/control.json', 'r') as fp:
-            self.enc_control = json.load(fp)
+            self.enc_control = set(json.load(fp))
 
         # with open('data/intervention.json', 'r') as fp:
         #     self.enc_intervention = json.load(fp)
@@ -88,7 +88,7 @@ class GetPredictionsBase(object):
                     "pos_sections": set(),
                     "pos_sentences": set(),
 
-                    "model": self.version
+                    "model": str(self.version)+"."+self.condition_version
                 }
 
 
@@ -422,21 +422,21 @@ class GetPredictionsBase(object):
             
             #Save models to file
 
-            path = "models/" + level + "_" + str(self.version) + ".classifier" 
+            path =self.path_prefix + level + "_" + str(self.version) + ".classifier" 
             if os.path.exists(path):
                 print path + "  already exists!"
                 os.remove(path)
             dump(classifier, path)
             self.classifier[level] = classifier
             
-            path = "models/" + level + "_" + str(self.version) + ".count_vect" 
+            path =self.path_prefix + level + "_" + str(self.version) + ".count_vect" 
             if os.path.exists(path):
                 print path + "  already exists!"
                 os.remove(path)
             dump(count_vect, path)        
             self.count_vect[level] = count_vect
             
-            path = "models/" + level + "_" + str(self.version) + ".tfidf_transformer" 
+            path =self.path_prefix + level + "_" + str(self.version) + ".tfidf_transformer" 
             if os.path.exists(path):
                 print path + "  already exists!"
                 os.remove(path)
@@ -449,8 +449,12 @@ class GetPredictionsControl(GetPredictionsBase):
 
     def __init__(self, database):
         self.condition = "control"
+        self.condition_version = "0"
+
         self.db = database
         self.path_prefix = CONDITIONS["control"]["path_prefix"]
+
+        print self.path_prefix
 
         self.levels = ["encounter", "report", "section", "sentence"]
 
@@ -488,9 +492,14 @@ class GetPredictionsControl(GetPredictionsBase):
 class GetPredictionsIntervention(GetPredictionsBase):
 
     def __init__(self, database):
+        
         self.condition = "intervention"
+        self.condition_version = "1"
+
         self.db = database
         self.path_prefix = CONDITIONS["intervention"]["path_prefix"]
+
+        print self.path_prefix
 
         self.levels = ["encounter", "report", "section", "sentence"]
 

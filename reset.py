@@ -66,22 +66,22 @@ def add_feedback():
                                      }
                                     )
                 
-                feedback = {
-                    'level': level,
-                    'id': row[level[:-1]+"_id"],
-                    'class': class_,
-                    'model': 0,
-                    'user': USER
-                }
+                # feedback = {
+                #     'level': level,
+                #     'id': row[level[:-1]+"_id"],
+                #     'class': class_,
+                #     'model': 0,
+                #     'user': USER
+                # }
 
-                #save in feedbacks for logging
-                db["feedbacks"].find_one_and_update( {
-                        "level": feedback["level"],
-                        "id": feedback["id"],
-                        "model": feedback["model"]
-                    },
-                    {"$set": feedback},
-                    upsert=True)
+                # #save in feedbacks for logging
+                # db["feedbacks"].find_one_and_update( {
+                #         "level": feedback["level"],
+                #         "id": feedback["id"],
+                #         "model": feedback["model"]
+                #     },
+                #     {"$set": feedback},
+                #     upsert=True)
 
 
 def create_models():
