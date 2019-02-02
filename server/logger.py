@@ -19,12 +19,14 @@ def set_up_logging():
     file_path = sys.modules[__name__].__file__
     project_path = os.path.dirname(os.path.dirname(file_path))
     log_location = project_path + '/logs/'
-    
+
     if not os.path.exists(log_location):
         os.makedirs(log_location)
 
     file_name = "run.log"
     file_location = log_location + file_name
+
+    print "Logging to file", file_location
     with open(file_location, 'a+'):
         pass
 
