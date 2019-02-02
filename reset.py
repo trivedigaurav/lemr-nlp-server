@@ -14,19 +14,22 @@ from pymongo import MongoClient
 
 from server import settings
 
-PATH_PREFIX = "models/"
+
 USER = "user"
 
 #settings
 client = MongoClient(settings.MONGODB_HOST, settings.MONGODB_PORT)
-db = client[settings.DATABASE_NAME]
 levels = ["encounters", "reports", "sections", "sentences"]
+
+db = None
+PATH_PREFIX = None
 
 with open('data/initial_ids.json') as json_file:  
     initial_ids = json.load(json_file)
 
 
 def remove_feedback():
+
     for level in levels:
         for row in db[level].find({"class":{"$ne":None}}):
                 db[level].update_one({ '_id': row['_id']},
@@ -141,15 +144,23 @@ def create_models():
 
 if __name__ == '__main__':
     
-    print "(1/3) Removing feedback"
-    remove_feedback()
-    
-    print "(2/3) Adding feedback"
-    add_feedback()
+    for key, cond in settings.CONDITIONS.iteritems():
 
-    print "(3/3) Training model 0"
-    create_models()
+        print
+        print "For", key
+        
+        db = client[cond["db"]]
+        PATH_PREFIX = cond["path_prefix"]
 
+        print "(1/3) Removing feedback"
+        remove_feedback()
+        
+        print "(2/3) Adding feedback"
+        add_feedback()
+
+        print "(3/3) Training model 0"
+        create_models()
+
+    print
     print "Done! Restart server now."
-
     

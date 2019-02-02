@@ -39,6 +39,6 @@ application.add_route('/getEncounter/{encounterid}', getEncounter)
 # annotator = Annotator(database)
 # application.add_route('/annotator/{event}/{uid}', annotator)
 
-getPredictions = GetPredictions(database)
+getPredictions = GetPredictions(client)
 application.add_route('/getPredictions/encounter/{encounterid}/{modelid}', getPredictions)
 application.add_route('/putFeedback/{modelid}/{override}', getPredictions)

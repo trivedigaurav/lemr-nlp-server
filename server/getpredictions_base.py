@@ -1,4 +1,3 @@
-from .settings import *
 from .logger import logEvent
 
 import json
@@ -17,67 +16,46 @@ from sklearn.externals.joblib import dump, load
 class_var = "class"
 USER = "user"
 
-
-class GetPredictions(object):
-
-    def __init__(self, client):
-        with open('data/control.json', 'r') as fp:
-            self.enc_control = json.load(fp)
-
-        # with open('data/intervention.json', 'r') as fp:
-        #     self.enc_intervention = json.load(fp)
-
-        self.control = GetPredictionsControl(client[CONDITIONS["control"]["db"]])
-        self.intervention = GetPredictionsIntervention(client[CONDITIONS["control"]["db"]])
-        
-
-    def on_get(self, req, resp, encounterid, modelid="current"):
-        if encounterid != None:
-            if encounterid in self.enc_control:
-                message = self.control.predict(encounterid)
-            else:
-                message = self.intervention.predict(encounterid)
-
-        if (message):
-            resp.body = json.dumps(message, ensure_ascii=False, cls=SetEncoder)
-            resp.status = falcon.HTTP_200
-
-
-    def on_put(self, req, resp, modelid, override):
-        feedbackObj = json.loads(req.stream.read(), 'utf-8')
-
-        if feedbackObj["encounter_id"] in self.enc_control:
-            message = self.control.parse_feedback(feedbackObj)
-        else:
-            message = self.intervention.parse_feedback(feedbackObj)
-
-        if (message):
-            resp.body = json.dumps({"status": "OK"}, ensure_ascii=False)
-            resp.status = falcon.HTTP_200
-
-
 class SetEncoder(json.JSONEncoder):
-    
     def default(self, obj):
         if isinstance(obj, set):
             return list(obj)
         return json.JSONEncoder.default(self, obj)
 
+class GetPredictionsControl(object):
 
-class GetPredictionsBase(object):
+    def __init__(self, database):
+        self.db = database
+        self.condition = "base"
+        self.levels = ["encounter", "report", "section", "sentence"]
+
+    def predict_one(level, row):
+        pass
 
     def predict(self, encounterid):
 
-        print self.condition, encounterid
+        def _clean_row(level, row, cond_control):
+            row["_id"] = str(row["_id"])
+            row.pop('rationales', None)
+            row['class'] = self.predict_one(level, row)
+
+            return row
 
         if encounterid != None:
 
             enc = self.db.encounters.find_one( { "encounter_id": str(encounterid) })
 
+            if encounterid in enc_control:
+                print "Control", encounterid
+                cond_control = True
+            else:
+                print "Intervention", encounterid
+                cond_control = False
+
             if (enc):
 
                 message = {
-                    "class": self._predict_one("encounter", enc),
+                    "class": self.predict_one("encounter", enc, cond_control),
                     # "rationale_list": enc['rationale_list'],
                 
                     "reports": defaultdict(list),
@@ -95,7 +73,7 @@ class GetPredictionsBase(object):
                 #Reports
                 for row in self.db["reports"].find( { "encounter_id": str(encounterid) } ) \
                             .sort([("date",1)]):
-                    row_ = self._clean_row("report", row)
+                    row_ = _clean_row("report", row, cond_control)
                     id_ = row_["report_id"]
 
                     message["reports"][id_] = row_
@@ -111,7 +89,7 @@ class GetPredictionsBase(object):
 
                 #Sections
                 for row in self.db["sections"].find( { "encounter_id": str(encounterid) } ):
-                    row_ = self._clean_row("section", row)
+                    row_ = _clean_row("section", row, cond_control)
                     id_ = row_["section_id"]
 
                     message["sections"][id_] = row_
@@ -133,7 +111,7 @@ class GetPredictionsBase(object):
 
                 #Sentences
                 for row in self.db["sentences"].find( { "encounter_id": str(encounterid) } ):
-                    row_ = self._clean_row("sentence", row)
+                    row_ = _clean_row("sentence", row, cond_control)
                     id_ = row_["sentence_id"]
 
                     message["sentences"][id_] = row_
@@ -163,75 +141,14 @@ class GetPredictionsBase(object):
                 
                 # print message
 
-                return message
+                resp.body = json.dumps(message, ensure_ascii=False, cls=SetEncoder)
+                resp.status = falcon.HTTP_200
+
             else:
                 logEvent("getPredictionsByEncounter", str({"encounterid": encounterid}), level=40)
 
 
-    def parse_feedback(self, feedbackObj):
-        
-        # print feedbackList
-
-        logEvent("putFeedback", str({"condition": self.condition, 
-                                    "feedbackObj": feedbackObj})) #DEBUG=10
-        
-        # print self.condition, feedbackObj["encounter_id"]
-
-        levels = ["encounter", "report", "section", "sentence", "text"]
-
-        self.version += 1
-
-        self._set_neg_feedback(feedbackObj["encounter_id"])
-
-        for level in levels[:-1]:
-            for pos_id in feedbackObj["pos_"+level+"s"]:
-                self._add_pos_feedback(pos_id, level)
-
-        for feedback in feedbackObj["list"]:
-            for level in levels:
-                if feedback[level]:
-                    
-                    if (level != "text"):
-                        record = {
-                                'level': level,
-                                'id': feedback[level]["id"],
-                                'class': feedback[level]["class"]
-                        }
-
-                        if (feedback["text"]):
-                            record["text"] = feedback["text"]["id"]
-
-                        self._add_feedback(record)
-                    else:
-                        found = self._find_text(text=feedback[level]["id"], report=feedback["report"]["id"])
-
-                        # import pdb; pdb.set_trace()
-                        # print found
-
-                        for sent in found["sentences"]:
-                            self.add_feedback({'level': "sentence", "id": sent, "class": 1, "text": feedback[level]["id"]}) #sent
-
-                        for sect in found["sections"]:
-                            self.add_feedback({'level': "section", "id": sect, "class": 1, "text": feedback[level]["id"]}) #sect
-
-
-        self._retrain()
-        dump(self.version, self.path_prefix + "version")
-
-        logEvent("newModel", str({"version": self.version, "path": self.path_prefix, "condition": self.condition}))
-        
-        return True
-
-
-    def _clean_row(self, level, row):
-        row["_id"] = str(row["_id"])
-        row.pop('rationales', None)
-        row['class'] = self._predict_one(level, row)
-
-        return row
-
-
-    def _find_text(self, text, report):
+    def find_text(self, text, report):
         
         ret = {
             "sections": set(),
@@ -303,7 +220,62 @@ class GetPredictionsBase(object):
         return ret
 
 
-    def _add_feedback(self, feedback):
+    def retrain(self):
+        for l in self.levels:
+            level = l+"s"
+
+            texts_ = []
+            classes_ = []
+            rationales_ = []
+            
+            for row in self.db[level].find({"class":{"$ne":None}}):
+                texts_.append(row['text'])
+                classes_.append(row['class'])
+
+                #add rationales for sentences
+                if (level == "sentences" and "rationale_list" in row):
+                    for rationale in row['rationale_list']:
+                        texts_.append(rationale)
+                        classes_.append(row['class'])
+
+                
+            count_vect = CountVectorizer()
+            tfidf_transformer = TfidfTransformer()
+            
+            classifier = LinearSVC(penalty="l2", dual=False, tol=1e-3)
+            # classifier = CalibratedClassifierCV(classifier)
+            
+            X_train_counts = count_vect.fit_transform(texts_)
+            X_train_tfidf = tfidf_transformer.fit_transform(X_train_counts)
+            
+            classifier.fit(X_train_tfidf, classes_)
+            
+            #Save models to file
+
+            path = "models/" + level + "_" + str(self.version) + ".classifier" 
+            if os.path.exists(path):
+                print path + "  already exists!"
+                os.remove(path)
+            dump(classifier, path)
+            self.classifier[level] = classifier
+            
+            path = "models/" + level + "_" + str(self.version) + ".count_vect" 
+            if os.path.exists(path):
+                print path + "  already exists!"
+                os.remove(path)
+            dump(count_vect, path)        
+            self.count_vect[level] = count_vect
+            
+            path = "models/" + level + "_" + str(self.version) + ".tfidf_transformer" 
+            if os.path.exists(path):
+                print path + "  already exists!"
+                os.remove(path)
+            dump(tfidf_transformer, path)
+            self.tfidf_transformer[level] = tfidf_transformer
+
+
+
+    def add_feedback(self, feedback):
 
         feedback['model'] = self.version
         feedback['user'] = USER
@@ -360,7 +332,7 @@ class GetPredictionsBase(object):
         #         {"$set": feedback}, upsert=True)
 
 
-    def _set_neg_feedback(self, encounter_id):
+    def set_neg_feedback(self, encounter_id):
         update_obj = {
             "$set":{
                 "class": 0,
@@ -375,7 +347,7 @@ class GetPredictionsBase(object):
                     }, update_obj)
 
 
-    def _add_pos_feedback(self, pos_id, level):
+    def add_pos_feedback(self, pos_id, level):
         update_obj = {
             "$set":{
                 "class": 1,
@@ -389,74 +361,69 @@ class GetPredictionsBase(object):
         }, update_obj)
 
 
-    def _retrain(self):
 
-        for l in self.levels:
-            level = l+"s"
+    def parse_feedback(self, feedbackObj):
+        feedbackObj = json.loads(req.stream.read(), 'utf-8')
+        logEvent("putFeedback", str(feedbackObj)) #DEBUG=10
 
-            texts_ = []
-            classes_ = []
-            rationales_ = []
-            
-            for row in self.db[level].find({"class":{"$ne":None}}):
-                texts_.append(row['text'])
-                classes_.append(row['class'])
+        # print feedbackList
 
-                #add rationales for sentences
-                if (level == "sentences" and "rationale_list" in row):
-                    for rationale in row['rationale_list']:
-                        texts_.append(rationale)
-                        classes_.append(row['class'])
+        levels = ["encounter", "report", "section", "sentence", "text"]
 
-                
-            count_vect = CountVectorizer()
-            tfidf_transformer = TfidfTransformer()
-            
-            classifier = LinearSVC(penalty="l2", dual=False, tol=1e-3)
-            # classifier = CalibratedClassifierCV(classifier)
-            
-            X_train_counts = count_vect.fit_transform(texts_)
-            X_train_tfidf = tfidf_transformer.fit_transform(X_train_counts)
-            
-            classifier.fit(X_train_tfidf, classes_)
-            
-            #Save models to file
+        self.version += 1
 
-            path = "models/" + level + "_" + str(self.version) + ".classifier" 
-            if os.path.exists(path):
-                print path + "  already exists!"
-                os.remove(path)
-            dump(classifier, path)
-            self.classifier[level] = classifier
-            
-            path = "models/" + level + "_" + str(self.version) + ".count_vect" 
-            if os.path.exists(path):
-                print path + "  already exists!"
-                os.remove(path)
-            dump(count_vect, path)        
-            self.count_vect[level] = count_vect
-            
-            path = "models/" + level + "_" + str(self.version) + ".tfidf_transformer" 
-            if os.path.exists(path):
-                print path + "  already exists!"
-                os.remove(path)
-            dump(tfidf_transformer, path)
-            self.tfidf_transformer[level] = tfidf_transformer
-            
+        self.set_neg_feedback(feedbackObj["encounter_id"])
+
+        for level in levels[:-1]:
+            for pos_id in feedbackObj["pos_"+level+"s"]:
+                self.add_pos_feedback(pos_id, level)
+
+        for feedback in feedbackObj["list"]:
+            for level in levels:
+                if feedback[level]:
+                    
+                    if (level != "text"):
+                        record = {
+                                'level': level,
+                                'id': feedback[level]["id"],
+                                'class': feedback[level]["class"]
+                        }
+
+                        if (feedback["text"]):
+                            record["text"] = feedback["text"]["id"]
+
+                        self.add_feedback(record)
+                    else:
+                        found = self.find_text(text=feedback[level]["id"], report=feedback["report"]["id"])
+
+                        # import pdb; pdb.set_trace()
+                        # print found
+
+                        for sent in found["sentences"]:
+                            self.add_feedback({'level': "sentence", "id": sent, "class": 1, "text": feedback[level]["id"]}) #sent
+
+                        for sect in found["sections"]:
+                            self.add_feedback({'level': "section", "id": sect, "class": 1, "text": feedback[level]["id"]}) #sect
+
+
+        self.retrain()
+        dump(self.version, self.path_prefix + "version")
+
+        logEvent("newModel", str({"version": self.version, "path": self.path_prefix, "condition": self.condition}))
+
+        resp.body = json.dumps({"status": "OK"}, ensure_ascii=False)
+        resp.status = falcon.HTTP_200
 
 
 class GetPredictionsControl(GetPredictionsBase):
 
     def __init__(self, database):
-        self.condition = "control"
         self.db = database
-        self.path_prefix = CONDITIONS["control"]["path_prefix"]
+        self.path_prefix = "models/"
 
-        self.levels = ["encounter", "report", "section", "sentence"]
-
-        self.classifier = {}
-        self.count_vect = {}
-        self.tfidf_transformer = {}
+        self.classifier_control = {}
+        self.count_vect_control = {}
+        self.tfidf_transformer_control = {}
 
         try:
             self.version = load(self.path_prefix + "version")
@@ -477,7 +444,7 @@ class GetPredictionsControl(GetPredictionsBase):
             self.tfidf_transformer[level] = load(path)    
         
     
-    def _predict_one(self, level, row):
+    def predict_one(self, level, row):
 
         if (class_var in row):
             return row[class_var] #Force user feedback
@@ -488,15 +455,12 @@ class GetPredictionsControl(GetPredictionsBase):
 class GetPredictionsIntervention(GetPredictionsBase):
 
     def __init__(self, database):
-        self.condition = "intervention"
         self.db = database
-        self.path_prefix = CONDITIONS["intervention"]["path_prefix"]
+        self.path_prefix = "models/"
 
-        self.levels = ["encounter", "report", "section", "sentence"]
-
-        self.classifier = {}
-        self.count_vect = {}
-        self.tfidf_transformer = {}
+        self.classifier_control = {}
+        self.count_vect_control = {}
+        self.tfidf_transformer_control = {}
 
         try:
             self.version = load(self.path_prefix + "version")
@@ -517,7 +481,7 @@ class GetPredictionsIntervention(GetPredictionsBase):
             self.tfidf_transformer[level] = load(path)    
         
     
-    def _predict_one(self, level, row):
+    def predict_one(self, level, row):
 
         if (class_var in row):
             return row[class_var] #Force user feedback
@@ -529,4 +493,3 @@ class GetPredictionsIntervention(GetPredictionsBase):
             y_pred = self.classifier[level].predict(X_test_tfidf)
 
             return y_pred[0]
-
