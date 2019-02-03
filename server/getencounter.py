@@ -85,7 +85,7 @@ class GetReportsByEncounter(object):
         message['admit'] = admit
         message['discharge'] = discharge
 
-        logEvent("getEncounter", encounterid)
+        # logEvent("getEncounter", encounterid)
 
         resp.body = json.dumps(message, ensure_ascii=False)
         resp.status = falcon.HTTP_200
