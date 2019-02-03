@@ -209,10 +209,10 @@ class GetPredictionsBase(object):
                         # print found
 
                         for sent in found["sentences"]:
-                            self.add_feedback({'level': "sentence", "id": sent, "class": 1, "text": feedback[level]["id"]}) #sent
+                            self._add_feedback({'level': "sentence", "id": sent, "class": 1, "text": feedback[level]["id"]}) #sent
 
                         for sect in found["sections"]:
-                            self.add_feedback({'level': "section", "id": sect, "class": 1, "text": feedback[level]["id"]}) #sect
+                            self._add_feedback({'level': "section", "id": sect, "class": 1, "text": feedback[level]["id"]}) #sect
 
 
         self._retrain()
