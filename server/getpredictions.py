@@ -172,7 +172,7 @@ class GetPredictionsBase(object):
         
         # print feedbackList
 
-        logEvent("putFeedback", str({"condition": self.condition, 
+        logEvent("parseFeedbackObj", str({"condition": self.condition, 
                                     "feedbackObj": feedbackObj})) #DEBUG=10
         
         # print self.condition, feedbackObj["encounter_id"]
