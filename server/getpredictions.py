@@ -391,7 +391,7 @@ class GetPredictionsBase(object):
 
     def _retrain(self):
 
-        for l in ["reports", "sections", "sentences"]:
+        for level in ["reports", "sections", "sentences"]:
 
             texts_ = []
             classes_ = []
@@ -481,6 +481,8 @@ class GetPredictionsControl(GetPredictionsBase):
         
     
     def _predict_one(self, level, row):
+
+        # import pdb; pdb.set_trace();
 
         if (class_var in row):
             return row[class_var] #Force user feedback
