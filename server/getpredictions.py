@@ -441,6 +441,9 @@ class GetPredictionsBase(object):
                 os.remove(path)
             dump(tfidf_transformer, path)
             self.tfidf_transformer[level] = tfidf_transformer
+
+    def _predict_one(self, level, row):
+            return row["gold_label"] == "pos"
             
 
 
@@ -480,14 +483,14 @@ class GetPredictionsControl(GetPredictionsBase):
             self.tfidf_transformer[level] = load(path)    
         
     
-    def _predict_one(self, level, row):
+    # def _predict_one(self, level, row):
 
-        # import pdb; pdb.set_trace();
+    #     # import pdb; pdb.set_trace();
 
-        if (class_var in row):
-            return row[class_var] #Force user feedback
-        else:     
-            return 0 #No predictions
+    #     if (class_var in row):
+    #         return row[class_var] #Force user feedback
+    #     else:     
+    #         return 0 #No predictions
             
 
 class GetPredictionsIntervention(GetPredictionsBase):
@@ -527,16 +530,16 @@ class GetPredictionsIntervention(GetPredictionsBase):
             self.tfidf_transformer[level] = load(path)    
         
     
-    def _predict_one(self, level, row):
+    # def _predict_one(self, level, row):
 
-        if (class_var in row):
-            return row[class_var] #Force user feedback
-        else:
-            texts = [row["text"]]
+    #     if (class_var in row):
+    #         return row[class_var] #Force user feedback
+    #     else:
+    #         texts = [row["text"]]
 
-            X_test_counts = self.count_vect[level].transform(texts)
-            X_test_tfidf = self.tfidf_transformer[level].transform(X_test_counts)
-            y_pred = self.classifier[level].predict(X_test_tfidf)
+    #         X_test_counts = self.count_vect[level].transform(texts)
+    #         X_test_tfidf = self.tfidf_transformer[level].transform(X_test_counts)
+    #         y_pred = self.classifier[level].predict(X_test_tfidf)
 
-            return y_pred[0]
+    #         return y_pred[0]
 
