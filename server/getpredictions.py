@@ -77,7 +77,7 @@ class GetPredictionsBase(object):
             if (enc):
 
                 message = {
-                    "class": self._predict_one("encounter", enc),
+                    "class": 1,
                     # "rationale_list": enc['rationale_list'],
                 
                     "reports": defaultdict(list),
@@ -391,8 +391,7 @@ class GetPredictionsBase(object):
 
     def _retrain(self):
 
-        for l in self.levels:
-            level = l+"s"
+        for l in ["reports", "sections", "sentences"]:
 
             texts_ = []
             classes_ = []
@@ -469,7 +468,7 @@ class GetPredictionsControl(GetPredictionsBase):
 
         # print os.getcwd()
 
-        for level in self.levels:
+        for level in ["report", "section", "sentence"]:
 
             path = self.path_prefix + level + "s_" + str(self.version) + ".classifier" 
             self.classifier[level] = load(path)       
@@ -514,7 +513,7 @@ class GetPredictionsIntervention(GetPredictionsBase):
 
         # print os.getcwd()
 
-        for level in self.levels:
+        for level in ["report", "section", "sentence"]:
 
             path = self.path_prefix + level + "s_" + str(self.version) + ".classifier" 
             self.classifier[level] = load(path)       
