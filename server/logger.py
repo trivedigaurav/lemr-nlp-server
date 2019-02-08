@@ -30,16 +30,16 @@ def set_up_logging():
     with open(file_location, 'a+'):
         pass
 
-    logger = logging.getLogger(__name__)
     format = '[%(asctime)s] [%(levelname)s] [%(message)s]'
 
     # To store in file
     logging.basicConfig(format=format, filemode='a+', filename=file_location, level=logging.DEBUG)
     
-    # Recreate file if deleted
-    log_handler = logging.handlers.WatchedFileHandler(file_location)
-    log_handler.setFormatter(logging.Formatter(format))
-    logger.addHandler(log_handler)
+    # # Recreate file if deleted
+    # logger = logging.getLogger(__name__)
+    # log_handler = logging.handlers.WatchedFileHandler(file_location)
+    # log_handler.setFormatter(logging.Formatter(format))
+    # logger.addHandler(log_handler)
 
     # To print only
     # logging.basicConfig(format=format, level=logging.DEBUG)
