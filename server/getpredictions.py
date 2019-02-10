@@ -28,7 +28,7 @@ class GetPredictions(object):
         #     self.enc_intervention = json.load(fp)
 
         self.control = GetPredictionsControl(client[CONDITIONS["control"]["db"]])
-        self.intervention = GetPredictionsIntervention(client[CONDITIONS["control"]["db"]])
+        self.intervention = GetPredictionsIntervention(client[CONDITIONS["intervenion"]["db"]])
         
 
     def on_get(self, req, resp, encounterid, modelid="current"):
