@@ -155,11 +155,11 @@ if __name__ == '__main__':
         print "(1/3) Removing feedback"
         remove_feedback()
         
-        print "(2/3) Adding feedback"
-        add_feedback()
+        # print "(2/3) Adding feedback"
+        # add_feedback()
 
-        print "(3/3) Training model 0"
-        create_models()
+        # print "(3/3) Training model 0"
+        # create_models()
 
     print
     print "Done! Restart server now."

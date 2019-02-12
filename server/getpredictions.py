@@ -28,15 +28,15 @@ class GetPredictions(object):
         #     self.enc_intervention = json.load(fp)
 
         self.control = GetPredictionsControl(client[CONDITIONS["control"]["db"]])
-        self.intervention = GetPredictionsIntervention(client[CONDITIONS["control"]["db"]])
+        self.intervention = GetPredictionsIntervention(client[CONDITIONS["intervention"]["db"]])
         
 
     def on_get(self, req, resp, encounterid, modelid="current"):
         if encounterid != None:
-            if encounterid in self.enc_control:
-                message = self.control.predict(encounterid)
-            else:
-                message = self.intervention.predict(encounterid)
+            # if encounterid in self.enc_control:
+            #     message = self.control.predict(encounterid)
+            # else:
+            message = self.intervention.predict(encounterid)
 
         if (message):
             resp.body = json.dumps(message, ensure_ascii=False, cls=SetEncoder)
@@ -46,10 +46,10 @@ class GetPredictions(object):
     def on_put(self, req, resp, modelid, override):
         feedbackObj = json.loads(req.stream.read(), 'utf-8')
 
-        if feedbackObj["encounter_id"] in self.enc_control:
-            message = self.control.parse_feedback(feedbackObj)
-        else:
-            message = self.intervention.parse_feedback(feedbackObj)
+        # if feedbackObj["encounter_id"] in self.enc_control:
+        #     message = self.control.parse_feedback(feedbackObj)
+        # else:
+        message = self.intervention.parse_feedback(feedbackObj)
 
         if (message):
             resp.body = json.dumps({"status": "OK"}, ensure_ascii=False)
@@ -175,17 +175,17 @@ class GetPredictionsBase(object):
         logEvent("parseFeedbackObj", str({"condition": self.condition, 
                                     "feedbackObj": feedbackObj})) #DEBUG=10
         
-        # print self.condition, feedbackObj["encounter_id"]
+        # # print self.condition, feedbackObj["encounter_id"]
 
         levels = ["encounter", "report", "section", "sentence", "text"]
 
-        self.version += 1
+        # self.version += 1
 
-        self._set_neg_feedback(feedbackObj["encounter_id"])
+        # self._set_neg_feedback(feedbackObj["encounter_id"])
 
-        for level in levels[:-1]:
-            for pos_id in feedbackObj["pos_"+level+"s"]:
-                self._add_pos_feedback(pos_id, level)
+        # for level in levels[:-1]:
+        #     for pos_id in feedbackObj["pos_"+level+"s"]:
+        #         self._add_pos_feedback(pos_id, level)
 
         for feedback in feedbackObj["list"]:
             for level in levels:
@@ -215,10 +215,10 @@ class GetPredictionsBase(object):
                             self._add_feedback({'level': "section", "id": sect, "class": 1, "text": feedback[level]["id"]}) #sect
 
 
-        self._retrain()
-        dump(self.version, self.path_prefix + "version")
+        # self._retrain()
+        # dump(self.version, self.path_prefix + "version")
 
-        logEvent("newModel", str({"version": self.version, "path": self.path_prefix, "condition": self.condition}))
+        # logEvent("newModel", str({"version": self.version, "path": self.path_prefix, "condition": self.condition}))
         
         return True
 
@@ -314,7 +314,7 @@ class GetPredictionsBase(object):
         
         update_obj = {
             "$set":{
-                 "class": feedback["class"],
+                 "change": feedback["class"],
                  "model": self.version,
             }
         }
@@ -363,7 +363,7 @@ class GetPredictionsBase(object):
     def _set_neg_feedback(self, encounter_id):
         update_obj = {
             "$set":{
-                "class": 0,
+                "change": 0,
                 "model": self.version
             }
         }
@@ -378,7 +378,7 @@ class GetPredictionsBase(object):
     def _add_pos_feedback(self, pos_id, level):
         update_obj = {
             "$set":{
-                "class": 1,
+                "change": 1,
                 "model": self.version
             }
         }
@@ -443,7 +443,12 @@ class GetPredictionsBase(object):
             self.tfidf_transformer[level] = tfidf_transformer
 
     def _predict_one(self, level, row):
-            return row["gold_label"] == "pos"
+
+        if ("change" in row):
+            # import pdb; pdb.set_trace()
+            return row["change"] #Force user feedback
+        else:     
+            return int(row["gold_label"] == "pos")
             
 
 
