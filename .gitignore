@@ -108,3 +108,8 @@ gunicorn.ini
 
 models/*
 !models/.gitkeep
+data/admitdate_map.json
+data/control.json
+data/discharge_map.json
+data/initial_ids.json
+data/intervention.json
