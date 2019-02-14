@@ -402,9 +402,10 @@ class GetPredictionsBase(object):
                 classes_.append(row['class'])
 
                 #add rationales
-                for rationale in row['rationale_list']:
-                    texts_.append(rationale)
-                    classes_.append(row['class'])
+                if ("rationale_list" in row):
+                    for rationale in row['rationale_list']:
+                        texts_.append(rationale)
+                        classes_.append(row['class'])
 
                 
             count_vect = CountVectorizer()
