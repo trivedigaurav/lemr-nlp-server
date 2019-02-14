@@ -108,3 +108,4 @@ gunicorn.ini
 
 models/*
 !models/.gitkeep
+*.json
