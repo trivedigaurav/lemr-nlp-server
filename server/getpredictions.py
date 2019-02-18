@@ -27,16 +27,15 @@ class GetPredictions(object):
         # with open('data/intervention.json', 'r') as fp:
         #     self.enc_intervention = json.load(fp)
 
-        self.control = GetPredictionsControl(client[CONDITIONS["control"]["db"]])
-        self.intervention = GetPredictionsIntervention(client[CONDITIONS["intervention"]["db"]])
+        self.base = GetPredictionsBase(DATABASE_NAME)
         
 
     def on_get(self, req, resp, encounterid, modelid="current"):
         if encounterid != None:
             if encounterid in self.enc_control:
-                message = self.control.predict(encounterid)
+                message = self.base.predict(encounterid, "control")
             else:
-                message = self.intervention.predict(encounterid)
+                message = self.base.predict(encounterid, "intervention")
 
         if (message):
             resp.body = json.dumps(message, ensure_ascii=False, cls=SetEncoder)
@@ -56,6 +55,7 @@ class GetPredictions(object):
             resp.status = falcon.HTTP_200
 
 
+
 class SetEncoder(json.JSONEncoder):
     
     def default(self, obj):
@@ -64,11 +64,50 @@ class SetEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
+
 class GetPredictionsBase(object):
 
-    def predict(self, encounterid):
+    def __init__(self, database):
 
+        self.db = database
+        self.path_prefix = CONDITIONS["intervention"]["path_prefix"]
+
+        self.levels = ["encounter", "report", "section", "sentence"]
+
+        self.classifier = {}
+        self.count_vect = {}
+        self.tfidf_transformer = {}
+
+        try:
+            self.version = load(self.path_prefix + "version")
+        except:
+            self.version = 0
+
+        # print os.getcwd()
+
+        for level in ["report", "section", "sentence"]:
+
+            path = self.path_prefix + level + "s_" + str(self.version) + ".classifier" 
+            self.classifier[level] = load(path)       
+        
+            path = self.path_prefix + level + "s_" + str(self.version) + ".count_vect" 
+            self.count_vect[level] = load(path)        
+        
+            path = self.path_prefix + level + "s_" + str(self.version) + ".tfidf_transformer" 
+            self.tfidf_transformer[level] = load(path)    
+        
+
+    def predict(self, encounterid, condition):
+
+        self.condition = condition;
         print self.condition, encounterid
+        
+
+        if condition == "control":
+            self._predict_one = self._predict_control
+        else:
+            self._predict_one = self._predict_intervention
+
 
         if encounterid != None:
 
@@ -88,7 +127,7 @@ class GetPredictionsBase(object):
                     "pos_sections": set(),
                     "pos_sentences": set(),
 
-                    "model": str(self.version)+"."+self.condition_version
+                    "model": str(self.version)
                 }
 
 
@@ -226,8 +265,9 @@ class GetPredictionsBase(object):
     def _clean_row(self, level, row):
         row["_id"] = str(row["_id"])
         row.pop('rationales', None)
+        
         row['class'] = self._predict_one(level, row)
-
+        
         return row
 
 
@@ -444,90 +484,7 @@ class GetPredictionsBase(object):
             
 
 
-class GetPredictionsControl(GetPredictionsBase):
-
-    def __init__(self, database):
-        self.condition = "control"
-        self.condition_version = "0"
-
-        self.db = database
-        self.path_prefix = CONDITIONS["control"]["path_prefix"]
-
-        print self.condition, self.path_prefix
-
-        self.levels = ["encounter", "report", "section", "sentence"]
-
-        self.classifier = {}
-        self.count_vect = {}
-        self.tfidf_transformer = {}
-
-        try:
-            self.version = load(self.path_prefix + "version")
-        except:
-            self.version = 0
-
-        # print os.getcwd()
-
-        for level in ["report", "section", "sentence"]:
-
-            path = self.path_prefix + level + "s_" + str(self.version) + ".classifier" 
-            self.classifier[level] = load(path)       
-        
-            path = self.path_prefix + level + "s_" + str(self.version) + ".count_vect" 
-            self.count_vect[level] = load(path)        
-        
-            path = self.path_prefix + level + "s_" + str(self.version) + ".tfidf_transformer" 
-            self.tfidf_transformer[level] = load(path)    
-        
-    
-    def _predict_one(self, level, row):
-
-        # import pdb; pdb.set_trace();
-
-        if (class_var in row):
-            return row[class_var] #Force user feedback
-        else:     
-            return 0 #No predictions
-            
-
-class GetPredictionsIntervention(GetPredictionsBase):
-
-    def __init__(self, database):
-        
-        self.condition = "intervention"
-        self.condition_version = "1"
-
-        self.db = database
-        self.path_prefix = CONDITIONS["intervention"]["path_prefix"]
-
-        print self.condition, self.path_prefix
-
-        self.levels = ["encounter", "report", "section", "sentence"]
-
-        self.classifier = {}
-        self.count_vect = {}
-        self.tfidf_transformer = {}
-
-        try:
-            self.version = load(self.path_prefix + "version")
-        except:
-            self.version = 0
-
-        # print os.getcwd()
-
-        for level in ["report", "section", "sentence"]:
-
-            path = self.path_prefix + level + "s_" + str(self.version) + ".classifier" 
-            self.classifier[level] = load(path)       
-        
-            path = self.path_prefix + level + "s_" + str(self.version) + ".count_vect" 
-            self.count_vect[level] = load(path)        
-        
-            path = self.path_prefix + level + "s_" + str(self.version) + ".tfidf_transformer" 
-            self.tfidf_transformer[level] = load(path)    
-        
-    
-    def _predict_one(self, level, row):
+    def _predict_intervention(self, level, row):
 
         if (class_var in row):
             return row[class_var] #Force user feedback
@@ -539,4 +496,15 @@ class GetPredictionsIntervention(GetPredictionsBase):
             y_pred = self.classifier[level].predict(X_test_tfidf)
 
             return y_pred[0]
+
+
+
+    def _predict_control(self, level, row):
+
+        # import pdb; pdb.set_trace();
+
+        if (class_var in row):
+            return row[class_var] #Force user feedback
+        else:     
+            return 0 #No predictions
 
