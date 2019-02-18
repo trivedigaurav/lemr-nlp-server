@@ -27,8 +27,8 @@ class GetPredictions(object):
         # with open('data/intervention.json', 'r') as fp:
         #     self.enc_intervention = json.load(fp)
 
-        self.base = GetPredictionsBase(DATABASE_NAME)
-        
+        self.base = GetPredictionsBase(client[DATABASE_NAME])
+
 
     def on_get(self, req, resp, encounterid, modelid="current"):
         if encounterid != None:
@@ -45,11 +45,8 @@ class GetPredictions(object):
     def on_put(self, req, resp, modelid, override):
         feedbackObj = json.loads(req.stream.read(), 'utf-8')
 
-        if feedbackObj["encounter_id"] in self.enc_control:
-            message = self.control.parse_feedback(feedbackObj)
-        else:
-            message = self.intervention.parse_feedback(feedbackObj)
-
+        message = self.base.parse_feedback(feedbackObj, "control")
+        
         if (message):
             resp.body = json.dumps({"status": "OK"}, ensure_ascii=False)
             resp.status = falcon.HTTP_200
@@ -99,9 +96,7 @@ class GetPredictionsBase(object):
 
     def predict(self, encounterid, condition):
 
-        self.condition = condition;
-        print self.condition, encounterid
-        
+        print condition, encounterid
 
         if condition == "control":
             self._predict_one = self._predict_control
@@ -111,7 +106,9 @@ class GetPredictionsBase(object):
 
         if encounterid != None:
 
-            enc = self.db.encounters.find_one( { "encounter_id": str(encounterid) })
+            # import pdb; pdb.set_trace();
+
+            enc = self.db["encounters"].find_one( { "encounter_id": str(encounterid) })
 
             if (enc):
 
@@ -207,11 +204,11 @@ class GetPredictionsBase(object):
                 logEvent("getPredictionsByEncounter", str({"encounterid": encounterid}), level=40)
 
 
-    def parse_feedback(self, feedbackObj):
+    def parse_feedback(self, feedbackObj, condition):
         
         # print feedbackList
 
-        logEvent("parseFeedbackObj", str({"condition": self.condition, 
+        logEvent("parseFeedbackObj", str({"condition": condition, 
                                     "feedbackObj": feedbackObj})) #DEBUG=10
         
         # print self.condition, feedbackObj["encounter_id"]
@@ -257,7 +254,7 @@ class GetPredictionsBase(object):
         self._retrain()
         dump(self.version, self.path_prefix + "version")
 
-        logEvent("newModel", str({"version": self.version, "path": self.path_prefix, "condition": self.condition}))
+        logEvent("newModel", str({"version": self.version, "path": self.path_prefix, "condition": condition}))
         
         return True
 
