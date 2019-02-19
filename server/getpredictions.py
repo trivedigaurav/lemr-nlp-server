@@ -45,6 +45,8 @@ class GetPredictions(object):
     def on_put(self, req, resp, modelid, override):
         feedbackObj = json.loads(req.stream.read(), 'utf-8')
 
+        encounterid = feedbackObj["encounter_id"]
+
         if encounterid in self.enc_control:
             message = self.base.parse_feedback(feedbackObj, "control")
         else:
