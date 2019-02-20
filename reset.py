@@ -104,8 +104,8 @@ def create_models():
             texts_.append(row['text'])
             classes_.append(row['class'])
 
-            #add rationales for sentences
-            if (level == "sentences"):
+            #add rationales
+            if ('rationale_list' in row):
                 for rationale in row['rationale_list']:
                     texts_.append(rationale)
                     classes_.append(1)
